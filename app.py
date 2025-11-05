@@ -208,18 +208,6 @@ def main():
     elif menu == "スコア入力":
         st.header("スコア入力")
         
-        # セッションステートの初期化
-        if "current_hole" not in st.session_state:
-            st.session_state.current_hole = 1
-        if "form_has_changes" not in st.session_state:
-            st.session_state.form_has_changes = False
-        if "original_scores" not in st.session_state:
-            st.session_state.original_scores = {}
-        if "show_warning" not in st.session_state:
-            st.session_state.show_warning = False
-        if "pending_hole" not in st.session_state:
-            st.session_state.pending_hole = None
-        
         # ゲーム一覧を取得
         games = notion.get_games()
         users = notion.get_users()
@@ -240,96 +228,25 @@ def main():
         if not game_members:
             st.warning("このラウンドにメンバーが設定されていません。")
             return
+        # ゲーム選択
+        game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
+        selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()), key="game_select")
+        selected_game = game_options[selected_game_key]
         
-        # 警告ダイアログの表示
-        if st.session_state.show_warning:
-            st.warning("⚠️ スコア入力が完了していません。よろしいですか？")
-            col1, col2, col3 = st.columns([1, 1, 2])
-            with col1:
-                if st.button("はい（ホール変更）", type="primary"):
-                    st.session_state.current_hole = st.session_state.pending_hole
-                    st.session_state.show_warning = False
-                    st.session_state.form_has_changes = False
-                    # 新しいホール用にselectboxの値も更新
-                    st.session_state.hole_select_temp = st.session_state.pending_hole
-                    # 元データをクリア
-                    if f"hole_{st.session_state.pending_hole}" in st.session_state.original_scores:
-                        del st.session_state.original_scores[f"hole_{st.session_state.pending_hole}"]
-                    st.rerun()
-            with col2:
-                if st.button("いいえ（戻る）"):
-                    st.session_state.show_warning = False
-                    st.session_state.pending_hole = None
-                    # selectboxの値を元のホールに戻す
-                    st.session_state.hole_select_temp = st.session_state.current_hole
-                    st.rerun()
-            st.stop()
+        # 選択されたゲームのメンバーを取得
+        user_dict = {user["page_id"]: user for user in users}
+        game_members = [user_dict[member_id] for member_id in selected_game["members"] if member_id in user_dict]
+        
+        if not game_members:
+            st.warning("このラウンドにメンバーが設定されていません。")
+            return
         
         # ホール選択
-        hole_options = list(range(1, 19))
-        hole_index = hole_options.index(st.session_state.current_hole) if st.session_state.current_hole in hole_options else 0
-        
-        # 現在のフォームの値をチェックして変更を検知する関数
-        def check_form_changes():
-            if f"hole_{st.session_state.current_hole}" not in st.session_state.original_scores:
-                return False
-            
-            # 現在のフォームの値を取得
-            has_changes = False
-            for i, member in enumerate(game_members):
-                stroke_key = f"stroke_{member['page_id']}_{st.session_state.current_hole}"
-                putt_key = f"putt_{member['page_id']}_{st.session_state.current_hole}"
-                snake_key = f"snake_{member['page_id']}_{st.session_state.current_hole}"
-                olympic_key = f"olympic_{member['page_id']}_{st.session_state.current_hole}"
-                
-                # セッションステートから現在の値を取得
-                if (stroke_key in st.session_state and 
-                    putt_key in st.session_state and 
-                    snake_key in st.session_state and 
-                    olympic_key in st.session_state):
-                    
-                    original = st.session_state.original_scores[f"hole_{st.session_state.current_hole}"][member['page_id']]
-                    current_stroke = st.session_state[stroke_key]
-                    current_putt = st.session_state[putt_key]
-                    current_snake = st.session_state[snake_key]
-                    current_olympic = st.session_state[olympic_key]
-                    
-                    if (current_stroke != original['stroke'] or 
-                        current_putt != original['putt'] or 
-                        current_snake != original['snake'] or 
-                        current_olympic != original['olympic']):
-                        has_changes = True
-                        break
-            
-            return has_changes
-        
-        def on_hole_change():
-            new_hole = st.session_state.hole_select_temp
-            if new_hole != st.session_state.current_hole:
-                # フォームに変更があるかチェック
-                if check_form_changes():
-                    st.session_state.show_warning = True
-                    st.session_state.pending_hole = new_hole
-                    # selectboxの値を元に戻す
-                    st.session_state.hole_select_temp = st.session_state.current_hole
-                else:
-                    st.session_state.current_hole = new_hole
-                    st.session_state.form_has_changes = False
-        
-        hole_number = st.selectbox(
-            "ホール番号", 
-            hole_options, 
-            index=hole_index,
-            key="hole_select_temp",
-            on_change=on_hole_change
-        )
-        
-        # 現在のホール番号を使用
-        hole_number = st.session_state.current_hole
+        hole_number = st.selectbox("ホール番号", list(range(1, 19)), key="hole_select")
         
         st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
         
-        # 既存のスコアを確認（ホール変更時に動的に更新）
+        # 既存のスコアを確認
         existing_scores = notion.get_scores(selected_game["id"])
         
         # 既存データがあるかどうかを表示
@@ -346,28 +263,6 @@ def main():
             
             # メンバーを横に並べて表示
             member_cols = st.columns(len(game_members))
-            
-            # 初回読み込み時に元のスコアを保存
-            if f"hole_{hole_number}" not in st.session_state.original_scores:
-                st.session_state.original_scores[f"hole_{hole_number}"] = {}
-                for i, member in enumerate(game_members):
-                    member_index = i + 1
-                    score_id = f"{selected_game['id']}_{member_index}_{hole_number}"
-                    existing_score = next((score for score in existing_scores if score["id"] == score_id), None)
-                    if existing_score:
-                        st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']] = {
-                            'stroke': existing_score["stroke"],
-                            'putt': existing_score["putt"],
-                            'snake': existing_score["snake"],
-                            'olympic': existing_score["olympic"]
-                        }
-                    else:
-                        st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']] = {
-                            'stroke': 4,
-                            'putt': 2,
-                            'snake': 0,
-                            'olympic': ""
-                        }
             
             # 各メンバーの入力欄を作成
             for i, member in enumerate(game_members):
@@ -469,17 +364,6 @@ def main():
                 
                 if error_count == 0:
                     st.success(f"ホール{hole_number}の全メンバー（{success_count}名）のスコアを保存しました！")
-                    # 保存成功時にフラグをリセット
-                    st.session_state.form_has_changes = False
-                    # 元のスコアを更新
-                    st.session_state.original_scores[f"hole_{hole_number}"] = {}
-                    for member_page_id, score_data in member_scores.items():
-                        st.session_state.original_scores[f"hole_{hole_number}"][member_page_id] = {
-                            'stroke': score_data['stroke'],
-                            'putt': score_data['putt'],
-                            'snake': score_data['snake'],
-                            'olympic': score_data['olympic']
-                        }
                     st.rerun()
                 else:
                     st.warning(f"ホール{hole_number}のスコア保存完了: 成功{success_count}件、エラー{error_count}件")
