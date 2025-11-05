@@ -316,9 +316,8 @@ def main():
                         format_func=lambda x: x["name"],
                         max_selections=4
                     )
-                    
-                    # オリンピック率設定
-                    st.subheader("オリンピック率設定")
+                    # オリンピック設定
+                    st.subheader("オリンピック設定")
                     
                     col1, col2, col3 = st.columns(3)
                     
