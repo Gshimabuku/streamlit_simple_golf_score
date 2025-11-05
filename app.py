@@ -923,14 +923,22 @@ def main():
                            iron_count * iron_rate + 
                            diamond_count * diamond_rate)
             
+            # 表示は未取得(0)の場合は '-' を表示
+            gold_disp = str(gold_count) if gold_count > 0 else "-"
+            silver_disp = str(silver_count) if silver_count > 0 else "-"
+            bronze_disp = str(bronze_count) if bronze_count > 0 else "-"
+            iron_disp = str(iron_count) if iron_count > 0 else "-"
+            diamond_disp = str(diamond_count) if diamond_count > 0 else "-"
+            total_disp = str(total_points) if total_points > 0 else "-"
+
             olympic_row = [
                 member_name,
-                str(gold_count),
-                str(silver_count),
-                str(bronze_count),
-                str(iron_count),
-                str(diamond_count),
-                str(total_points)
+                gold_disp,
+                silver_disp,
+                bronze_disp,
+                iron_disp,
+                diamond_disp,
+                total_disp
             ]
             olympic_table_data.append(olympic_row)
         
