@@ -839,6 +839,87 @@ def main():
         snake_df = pd.DataFrame(snake_table_data[1:], columns=snake_table_data[0])
         st.dataframe(snake_df, use_container_width=True, hide_index=True)
         
+        # オリンピックスコア確認シートを追加
+        st.subheader("🏅 オリンピックスコア")
+        
+        # オリンピックスコアのテーブルデータを構築
+        olympic_table_data = []
+        
+        # ヘッダー行
+        olympic_header = ["名前", "金", "銀", "銅", "鉄", "ダイヤモンド", "合計点"]
+        olympic_table_data.append(olympic_header)
+        
+        # オリンピック設定値を取得
+        gold_rate = selected_game.get("gold", 4)
+        silver_rate = selected_game.get("silver", 3)
+        bronze_rate = selected_game.get("bronze", 2)
+        iron_rate = selected_game.get("iron", 1)
+        diamond_rate = selected_game.get("diamond", 5)
+        
+        # 各メンバーのオリンピックスコア行
+        for member in game_members:
+            member_name = member["name"]
+            
+            # 各オリンピックの個数をカウント
+            gold_count = 0
+            silver_count = 0
+            bronze_count = 0
+            iron_count = 0
+            diamond_count = 0
+            
+            for hole in range(1, 19):
+                if hole in score_data[member_name]:
+                    olympic = score_data[member_name][hole]["olympic"]
+                    if olympic == "金":
+                        gold_count += 1
+                    elif olympic == "銀":
+                        silver_count += 1
+                    elif olympic == "銅":
+                        bronze_count += 1
+                    elif olympic == "鉄":
+                        iron_count += 1
+                    elif olympic == "ダイヤモンド":
+                        diamond_count += 1
+            
+            # 合計点を計算（個数×設定値）
+            total_points = (gold_count * gold_rate + 
+                           silver_count * silver_rate + 
+                           bronze_count * bronze_rate + 
+                           iron_count * iron_rate + 
+                           diamond_count * diamond_rate)
+            
+            olympic_row = [
+                member_name,
+                str(gold_count),
+                str(silver_count),
+                str(bronze_count),
+                str(iron_count),
+                str(diamond_count),
+                str(total_points)
+            ]
+            olympic_table_data.append(olympic_row)
+        
+        # オリンピックスコアテーブルを表示
+        olympic_df = pd.DataFrame(olympic_table_data[1:], columns=olympic_table_data[0])
+        
+        # 合計点列を太字にするスタイリング
+        def style_olympic_totals(df):
+            def apply_bold_style(val):
+                if str(val).isdigit():
+                    return "font-weight: bold"
+                return ""
+            
+            styled_df = df.style
+            if "合計点" in df.columns:
+                styled_df = styled_df.applymap(apply_bold_style, subset=["合計点"])
+            
+            return styled_df
+        
+        st.dataframe(style_olympic_totals(olympic_df), use_container_width=True, hide_index=True)
+        
+        # オリンピック設定値を表示
+        st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
+        
         # 各メンバーのOUT合計を計算
         member_out_totals = {}
         
