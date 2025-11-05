@@ -405,7 +405,7 @@ def main():
                             properties = {
                                 "play_date": {"date": {"start": edit_date.strftime("%Y-%m-%d")}},
                                 "place": {"rich_text": [{"text": {"content": edit_place}}]},
-                                "game_id": {"title": [{"text": {"content": edit_game_id}}]},
+                                "id": {"title": [{"text": {"content": edit_game_id}}]},
                                 "gold": {"number": edit_gold_rate},
                                 "silver": {"number": edit_silver_rate},
                                 "bronze": {"number": edit_bronze_rate},
