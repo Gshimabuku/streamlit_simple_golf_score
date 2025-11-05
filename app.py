@@ -275,10 +275,6 @@ def main():
                 with st.form("edit_round_form"):
                     st.subheader("ラウンド情報編集")
                     
-                    # 現在のIDと新しいIDの情報表示
-                    current_id = selected_game.get('game_id', '')
-                    st.info(f"📋 現在のラウンドID: **{current_id}**")
-                    
                     # 既存の値を初期値として設定
                     col1, col2 = st.columns(2)
                     
@@ -287,12 +283,6 @@ def main():
                             "プレー日",
                             value=datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
                         )
-                        # 新しいIDの表示
-                        new_id = edit_date.strftime("%Y%m%d")
-                        if new_id != current_id:
-                            st.warning(f"🔄 プレー日変更により、ラウンドIDが **{new_id}** に変更されます")
-                        else:
-                            st.success(f"✅ ラウンドIDは **{new_id}** のまま変更されません")
                     
                     with col2:
                         edit_place = st.text_input(
