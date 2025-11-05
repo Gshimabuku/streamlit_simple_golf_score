@@ -228,25 +228,13 @@ def main():
         if not game_members:
             st.warning("このラウンドにメンバーが設定されていません。")
             return
-        # ゲーム選択
-        game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
-        selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()), key="game_select")
-        selected_game = game_options[selected_game_key]
         
-        # 選択されたゲームのメンバーを取得
-        user_dict = {user["page_id"]: user for user in users}
-        game_members = [user_dict[member_id] for member_id in selected_game["members"] if member_id in user_dict]
-        
-        if not game_members:
-            st.warning("このラウンドにメンバーが設定されていません。")
-            return
-        
-        # ホール選択
+        # ホール選択（フォーム外で配置）
         hole_number = st.selectbox("ホール番号", list(range(1, 19)), key="hole_select")
         
         st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
         
-        # 既存のスコアを確認
+        # 既存のスコアを確認（ホール変更時に動的に更新）
         existing_scores = notion.get_scores(selected_game["id"])
         
         # 既存データがあるかどうかを表示
