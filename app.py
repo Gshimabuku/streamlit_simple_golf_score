@@ -515,6 +515,72 @@ def main():
         df = pd.DataFrame(table_data[1:], columns=table_data[0])
         st.dataframe(df, use_container_width=True, hide_index=True)
         
+        # ヘビスコア確認シートを追加
+        st.subheader("🐍 ヘビスコア確認シート")
+        
+        # ヘビスコアのテーブルデータを構築
+        snake_table_data = []
+        
+        # ヘッダー行（3ホールごと）
+        snake_header = ["名前", "1-3", "4-6", "7-9", "10-12", "13-15", "16-18", "計"]
+        snake_table_data.append(snake_header)
+        
+        # 各メンバーのヘビスコア行
+        for member in game_members:
+            member_name = member["name"]
+            snake_row = [member_name]
+            total_snake = 0
+            
+            # 3ホールごとの集計
+            for start_hole in [1, 4, 7, 10, 13, 16]:
+                period_snake = 0
+                for hole in range(start_hole, start_hole + 3):
+                    if hole in score_data[member_name]:
+                        period_snake += score_data[member_name][hole]["snake"]
+                
+                snake_row.append(str(period_snake) if period_snake > 0 else "0")
+                total_snake += period_snake
+            
+            snake_row.append(str(total_snake))
+            snake_table_data.append(snake_row)
+        
+        # 全メンバー合計行を追加
+        total_row = ["合計"]
+        grand_total = 0
+        for start_hole in [1, 4, 7, 10, 13, 16]:
+            period_total = 0
+            for member in game_members:
+                member_name = member["name"]
+                for hole in range(start_hole, start_hole + 3):
+                    if hole in score_data[member_name]:
+                        period_total += score_data[member_name][hole]["snake"]
+            total_row.append(str(period_total))
+            grand_total += period_total
+        
+        total_row.append(str(grand_total))
+        snake_table_data.append(total_row)
+        
+        # アウトメンバー行を追加
+        out_row = ["アウト"]
+        for target_hole in [3, 6, 9, 12, 15, 18]:
+            out_members = []
+            for member in game_members:
+                member_name = member["name"]
+                if target_hole in score_data[member_name] and score_data[member_name][target_hole].get("snake_out", False):
+                    out_members.append(member_name)
+            
+            if out_members:
+                out_row.append(", ".join(out_members))
+            else:
+                out_row.append("-")
+        
+        out_row.append("-")  # 計の欄
+        snake_table_data.append(out_row)
+        
+        # ヘビスコアテーブルを表示
+        snake_df = pd.DataFrame(snake_table_data[1:], columns=snake_table_data[0])
+        st.dataframe(snake_df, use_container_width=True, hide_index=True)
+        
         # 詳細情報（オリンピック、ヘビ）の表示
         st.subheader("🏅 詳細情報")
         
