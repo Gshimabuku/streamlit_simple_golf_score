@@ -329,24 +329,6 @@ def main():
                             value=max(0, selected_game.get('gold', 0) or 0),
                             step=4,
                         )
-                        
-                        edit_silver_rate = st.number_input(
-                            "銀",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('silver', 0) or 0),
-                            step=3,
-                        )
-                    
-                    with col2:
-                        edit_bronze_rate = st.number_input(
-                            "銅",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('bronze', 0) or 0),
-                            step=2,
-                        )
-                        
                         edit_iron_rate = st.number_input(
                             "鉄",
                             min_value=0,
@@ -355,13 +337,29 @@ def main():
                             step=1,
                         )
                     
-                    with col3:
+                    with col2:
+                        edit_silver_rate = st.number_input(
+                            "銀",
+                            min_value=0,
+                            max_value=100,
+                            value=max(0, selected_game.get('silver', 0) or 0),
+                            step=3,
+                        )
                         edit_diamond_rate = st.number_input(
                             "ダイヤモンド",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('diamond', 0) or 0),
                             step=5
+                        )
+                    
+                    with col3:
+                        edit_bronze_rate = st.number_input(
+                            "銅",
+                            min_value=0,
+                            max_value=100,
+                            value=max(0, selected_game.get('bronze', 0) or 0),
+                            step=2,
                         )
                     
                     if st.form_submit_button("ラウンドを更新"):
