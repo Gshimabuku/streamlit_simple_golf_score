@@ -270,7 +270,7 @@ def main():
                     st.markdown(f"### {member['name']} {data_status}")
                     
                     stroke = st.number_input(
-                        "ストローク数",
+                        "ストローク",
                         min_value=1,
                         max_value=15,
                         value=existing_score["stroke"] if existing_score else 4,
@@ -278,7 +278,7 @@ def main():
                     )
                     
                     putt = st.number_input(
-                        "パット数",
+                        "パット",
                         min_value=0,
                         max_value=5,
                         value=existing_score["putt"] if existing_score else 2,
@@ -286,14 +286,14 @@ def main():
                     )
                     
                     olympic = st.selectbox(
-                        "パットゲーム",
+                        "オリンピック",
                         olympic_options,
                         index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0,
                         key=f"olympic_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
                     snake = st.number_input(
-                        "ミス数",
+                        "ヘビ",
                         min_value=0,
                         max_value=10,
                         value=existing_score["snake"] if existing_score else 0,
