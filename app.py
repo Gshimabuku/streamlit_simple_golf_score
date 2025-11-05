@@ -573,9 +573,6 @@ def main():
         snake_df = pd.DataFrame(snake_table_data[1:], columns=snake_table_data[0])
         st.dataframe(snake_df, use_container_width=True, hide_index=True)
         
-        # メンバー別OUT合計数を表示
-        st.subheader("🏆 メンバー別OUT合計スコア")
-        
         # 各メンバーのOUT合計を計算
         member_out_totals = {}
         
