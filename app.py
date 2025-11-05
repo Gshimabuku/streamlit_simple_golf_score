@@ -208,6 +208,18 @@ def main():
     elif menu == "スコア入力":
         st.header("スコア入力")
         
+        # セッションステートの初期化
+        if "current_hole" not in st.session_state:
+            st.session_state.current_hole = 1
+        if "form_has_changes" not in st.session_state:
+            st.session_state.form_has_changes = False
+        if "original_scores" not in st.session_state:
+            st.session_state.original_scores = {}
+        if "show_warning" not in st.session_state:
+            st.session_state.show_warning = False
+        if "pending_hole" not in st.session_state:
+            st.session_state.pending_hole = None
+        
         # ゲーム一覧を取得
         games = notion.get_games()
         users = notion.get_users()
@@ -229,8 +241,49 @@ def main():
             st.warning("このラウンドにメンバーが設定されていません。")
             return
         
-        # ホール選択（フォーム外で配置）
-        hole_number = st.selectbox("ホール番号", list(range(1, 19)), key="hole_select")
+        # 警告ダイアログの表示
+        if st.session_state.show_warning:
+            st.warning("⚠️ スコア入力が完了していません。よろしいですか？")
+            col1, col2, col3 = st.columns([1, 1, 2])
+            with col1:
+                if st.button("はい（ホール変更）", type="primary"):
+                    st.session_state.current_hole = st.session_state.pending_hole
+                    st.session_state.show_warning = False
+                    st.session_state.form_has_changes = False
+                    st.session_state.original_scores = {}
+                    st.rerun()
+            with col2:
+                if st.button("いいえ（戻る）"):
+                    st.session_state.show_warning = False
+                    st.session_state.pending_hole = None
+                    st.rerun()
+            st.stop()
+        
+        # ホール選択
+        hole_options = list(range(1, 19))
+        hole_index = hole_options.index(st.session_state.current_hole) if st.session_state.current_hole in hole_options else 0
+        
+        def on_hole_change():
+            new_hole = st.session_state.hole_select_temp
+            if new_hole != st.session_state.current_hole:
+                # フォームに変更があるかチェック
+                if st.session_state.form_has_changes:
+                    st.session_state.show_warning = True
+                    st.session_state.pending_hole = new_hole
+                else:
+                    st.session_state.current_hole = new_hole
+                    st.session_state.original_scores = {}
+        
+        hole_number = st.selectbox(
+            "ホール番号", 
+            hole_options, 
+            index=hole_index,
+            key="hole_select_temp",
+            on_change=on_hole_change
+        )
+        
+        # 現在のホール番号を使用
+        hole_number = st.session_state.current_hole
         
         st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
         
