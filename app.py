@@ -250,12 +250,18 @@ def main():
                     st.session_state.current_hole = st.session_state.pending_hole
                     st.session_state.show_warning = False
                     st.session_state.form_has_changes = False
-                    st.session_state.original_scores = {}
+                    # 新しいホール用にselectboxの値も更新
+                    st.session_state.hole_select_temp = st.session_state.pending_hole
+                    # 元データをクリア
+                    if f"hole_{st.session_state.pending_hole}" in st.session_state.original_scores:
+                        del st.session_state.original_scores[f"hole_{st.session_state.pending_hole}"]
                     st.rerun()
             with col2:
                 if st.button("いいえ（戻る）"):
                     st.session_state.show_warning = False
                     st.session_state.pending_hole = None
+                    # selectboxの値を元のホールに戻す
+                    st.session_state.hole_select_temp = st.session_state.current_hole
                     st.rerun()
             st.stop()
         
@@ -263,16 +269,52 @@ def main():
         hole_options = list(range(1, 19))
         hole_index = hole_options.index(st.session_state.current_hole) if st.session_state.current_hole in hole_options else 0
         
+        # 現在のフォームの値をチェックして変更を検知する関数
+        def check_form_changes():
+            if f"hole_{st.session_state.current_hole}" not in st.session_state.original_scores:
+                return False
+            
+            # 現在のフォームの値を取得
+            has_changes = False
+            for i, member in enumerate(game_members):
+                stroke_key = f"stroke_{member['page_id']}_{st.session_state.current_hole}"
+                putt_key = f"putt_{member['page_id']}_{st.session_state.current_hole}"
+                snake_key = f"snake_{member['page_id']}_{st.session_state.current_hole}"
+                olympic_key = f"olympic_{member['page_id']}_{st.session_state.current_hole}"
+                
+                # セッションステートから現在の値を取得
+                if (stroke_key in st.session_state and 
+                    putt_key in st.session_state and 
+                    snake_key in st.session_state and 
+                    olympic_key in st.session_state):
+                    
+                    original = st.session_state.original_scores[f"hole_{st.session_state.current_hole}"][member['page_id']]
+                    current_stroke = st.session_state[stroke_key]
+                    current_putt = st.session_state[putt_key]
+                    current_snake = st.session_state[snake_key]
+                    current_olympic = st.session_state[olympic_key]
+                    
+                    if (current_stroke != original['stroke'] or 
+                        current_putt != original['putt'] or 
+                        current_snake != original['snake'] or 
+                        current_olympic != original['olympic']):
+                        has_changes = True
+                        break
+            
+            return has_changes
+        
         def on_hole_change():
             new_hole = st.session_state.hole_select_temp
             if new_hole != st.session_state.current_hole:
                 # フォームに変更があるかチェック
-                if st.session_state.form_has_changes:
+                if check_form_changes():
                     st.session_state.show_warning = True
                     st.session_state.pending_hole = new_hole
+                    # selectboxの値を元に戻す
+                    st.session_state.hole_select_temp = st.session_state.current_hole
                 else:
                     st.session_state.current_hole = new_hole
-                    st.session_state.original_scores = {}
+                    st.session_state.form_has_changes = False
         
         hole_number = st.selectbox(
             "ホール番号", 
@@ -386,14 +428,6 @@ def main():
                     'olympic': olympic,
                     'existing_score': existing_score
                 }
-                
-                # 変更検知
-                original = st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']]
-                if (stroke != original['stroke'] or 
-                    putt != original['putt'] or 
-                    snake != original['snake'] or 
-                    olympic != original['olympic']):
-                    st.session_state.form_has_changes = True
             
             st.markdown("---")  # 区切り線
             submitted = st.form_submit_button("全メンバーのスコアを保存", use_container_width=True)
