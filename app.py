@@ -165,40 +165,6 @@ def main():
     st.set_page_config(page_title="ゴルフスコア記録アプリ", layout="wide")
     st.title("🏌️ ゴルフスコア記録アプリ")
     
-    # iPadでセレクトボックスのキーボード表示を防ぐCSS
-    st.markdown("""
-    <style>
-    /* iPadでselect要素のキーボード表示を防ぐ */
-    select {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        -webkit-touch-callout: none;
-        -webkit-tap-highlight-color: transparent;
-        pointer-events: auto !important;
-        cursor: pointer !important;
-    }
-    
-    /* Streamlitのselect要素に対する追加設定 */
-    .stSelectbox > div > div > div > div {
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        -webkit-touch-callout: none !important;
-        pointer-events: auto !important;
-    }
-    
-    /* モバイルデバイスでのselect要素の動作改善 */
-    @media (max-width: 768px) {
-        select {
-            font-size: 16px !important;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     notion = NotionClient()
     
     # サイドバーでメニュー選択
