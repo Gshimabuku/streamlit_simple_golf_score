@@ -121,6 +121,7 @@ class NotionClient:
                 putt = page["properties"]["putt"]["number"] if page["properties"]["putt"]["number"] else 0
                 snake = page["properties"]["snake"]["number"] if page["properties"]["snake"]["number"] else 0
                 olympic = page["properties"]["olympic"]["select"]["name"] if page["properties"]["olympic"]["select"] else ""
+                snake_out = page["properties"]["snake_out"]["checkbox"] if "snake_out" in page["properties"] and page["properties"]["snake_out"] else False
                 
                 # ゲームとユーザーのリレーション
                 game_relation = page["properties"]["game"]["relation"][0]["id"] if page["properties"]["game"]["relation"] else ""
@@ -133,6 +134,7 @@ class NotionClient:
                     "putt": putt,
                     "snake": snake,
                     "olympic": olympic,
+                    "snake_out": snake_out,
                     "game_relation": game_relation,
                     "user_relation": user_relation,
                     "page_id": page["id"]
@@ -300,6 +302,16 @@ def main():
                         key=f"snake_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
+                    # 3の倍数ホール（3、6、9、12、15、18）でsnake_outチェックボックスを表示
+                    snake_out = False
+                    if hole_number % 3 == 0:
+                        snake_out = st.checkbox(
+                            "🐍アウト",
+                            value=existing_score["snake_out"] if existing_score else False,
+                            key=f"snake_out_{member['page_id']}_{hole_number}",
+                            help="このホールでヘビアウトになった場合にチェック"
+                        )
+                    
                     # 既存データの詳細情報を表示
                     if existing_score:
                         st.caption("📊 既存データが読み込まれています")
@@ -314,10 +326,18 @@ def main():
                     'putt': putt,
                     'snake': snake,
                     'olympic': olympic,
+                    'snake_out': snake_out,
                     'existing_score': existing_score
                 }
             
             if submitted:
+                # 3の倍数ホールでのsnake_outバリデーション
+                if hole_number % 3 == 0:
+                    snake_out_count = sum(1 for score_data in member_scores.values() if score_data['snake_out'])
+                    if snake_out_count > 1:
+                        st.error("🐍アウトは1人だけ選択できます。")
+                        st.stop()
+                
                 success_count = 0
                 error_count = 0
                 
@@ -333,6 +353,10 @@ def main():
                         "putt": {"number": score_data['putt']},
                         "snake": {"number": score_data['snake']}
                     }
+                    
+                    # 3の倍数ホールの場合のみsnake_outを追加
+                    if hole_number % 3 == 0:
+                        properties["snake_out"] = {"checkbox": score_data['snake_out']}
                     
                     if score_data['olympic']:
                         properties["olympic"] = {"select": {"name": score_data['olympic']}}
@@ -400,7 +424,8 @@ def main():
                     "stroke": score["stroke"],
                     "putt": score["putt"],
                     "snake": score["snake"],
-                    "olympic": score["olympic"]
+                    "olympic": score["olympic"],
+                    "snake_out": score.get("snake_out", False)
                 }
         
         # スコアシート形式のテーブルを作成
@@ -426,7 +451,11 @@ def main():
             for hole in range(1, 10):
                 if hole in score_data[member_name]:
                     stroke = score_data[member_name][hole]["stroke"]
-                    stroke_row.append(str(stroke))
+                    # 3の倍数ホールでsnake_outがある場合は🐍マークを追加
+                    if hole % 3 == 0 and score_data[member_name][hole].get("snake_out", False):
+                        stroke_row.append(f"{stroke}🐍")
+                    else:
+                        stroke_row.append(str(stroke))
                     in_total += stroke
                 else:
                     stroke_row.append("-")
@@ -437,7 +466,11 @@ def main():
             for hole in range(10, 19):
                 if hole in score_data[member_name]:
                     stroke = score_data[member_name][hole]["stroke"]
-                    stroke_row.append(str(stroke))
+                    # 3の倍数ホールでsnake_outがある場合は🐍マークを追加
+                    if hole % 3 == 0 and score_data[member_name][hole].get("snake_out", False):
+                        stroke_row.append(f"{stroke}🐍")
+                    else:
+                        stroke_row.append(str(stroke))
                     out_total += stroke
                 else:
                     stroke_row.append("-")
@@ -502,6 +535,9 @@ def main():
                                 st.write(f"🏅 {hole_data['olympic']}")
                             if hole_data['snake'] > 0:
                                 st.write(f"🐍 ヘビ: {hole_data['snake']}")
+                            # 3の倍数ホールでsnake_outを表示
+                            if hole % 3 == 0 and hole_data.get('snake_out', False):
+                                st.write("🐍 **アウト!**")
                         else:
                             st.write(f"**ホール {hole}**")
                             st.write("未記録")
