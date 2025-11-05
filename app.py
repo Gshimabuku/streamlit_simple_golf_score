@@ -92,17 +92,23 @@ class NotionClient:
                 
                 # メンバー情報を取得
                 members = []
+                member_names = {}
                 for i in range(1, 5):
                     member_key = f"member{i}"
                     if page["properties"][member_key]["relation"]:
                         member_id = page["properties"][member_key]["relation"][0]["id"]
                         members.append(member_id)
+                        # メンバー名も取得する（後でユーザー情報から名前を検索するため）
+                        member_names[f"member{i}_id"] = member_id
+                    else:
+                        member_names[f"member{i}_id"] = None
                 
                 games.append({
                     "id": game_id,
                     "play_date": play_date,
                     "place": place,
                     "members": members,
+                    "member_ids": member_names,  # 個別のメンバーID情報を追加
                     "gold": gold,
                     "silver": silver,
                     "bronze": bronze,
@@ -272,6 +278,10 @@ def main():
             if selected_game_option:
                 selected_game = selected_game_option["value"]
                 
+                # デバッグ情報（開発用）
+                with st.expander("🔍 デバッグ情報（開発用）"):
+                    st.json(selected_game)
+                
                 with st.form("edit_round_form"):
                     st.subheader("ラウンド情報編集")
                     
@@ -299,15 +309,8 @@ def main():
                     # 現在設定されているメンバーを取得
                     current_member_ids = []
                     for i in range(1, 5):
-                        member_name = selected_game.get(f'member{i}_name')
-                        if member_name:
-                            # ユーザーリストから該当するユーザーを検索
-                            for user in users:
-                                if user["name"] == member_name:
-                                    current_member_ids.append(user["page_id"])
-                                    break
-                        else:
-                            current_member_ids.append(None)
+                        member_id = selected_game["member_ids"].get(f'member{i}_id')
+                        current_member_ids.append(member_id)
                     
                     # 4つのプルダウンでメンバー選択
                     member_cols = st.columns(4)
