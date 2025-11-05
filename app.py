@@ -981,13 +981,12 @@ def main():
                             st.write(f"パット: {hole_data['putt']}")
                             if hole_data['olympic']:
                                 st.write(f"🏅 {hole_data['olympic']}")
+                            else:
+                                st.write("🏅 -")
                             if hole_data['snake'] > 0:
                                 st.write(f"🐍 ヘビ: {hole_data['snake']}")
-                            if hole_data.get('birdie', False):
-                                st.write("🦅 **バーディー!**")
-                            # 3の倍数ホールでsnake_outを表示
-                            if hole % 3 == 0 and hole_data.get('snake_out', False):
-                                st.write("🐍 **アウト!**")
+                            else:
+                                st.write("🐍 -")
                         else:
                             st.write(f"**ホール {hole}**")
                             st.write("未記録")
