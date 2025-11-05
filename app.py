@@ -293,24 +293,56 @@ def main():
                     # メンバー選択（最大4人）
                     st.subheader("メンバー選択")
                     
-                    # 現在のメンバーを取得
-                    current_members = []
+                    # メンバー選択用のオプション準備
+                    member_options = [{"name": "（選択なし）", "page_id": None}] + users
+                    
+                    # 現在設定されているメンバーを取得
+                    current_member_ids = []
                     for i in range(1, 5):
                         member_name = selected_game.get(f'member{i}_name')
                         if member_name:
                             # ユーザーリストから該当するユーザーを検索
                             for user in users:
                                 if user["name"] == member_name:
-                                    current_members.append(user)
+                                    current_member_ids.append(user["page_id"])
                                     break
+                        else:
+                            current_member_ids.append(None)
                     
-                    edit_selected_members = st.multiselect(
-                        "メンバーを選択してください（最大4人）",
-                        users,
-                        default=current_members,
-                        format_func=lambda x: x["name"],
-                        max_selections=4
-                    )
+                    # 4つのプルダウンでメンバー選択
+                    member_cols = st.columns(4)
+                    selected_member_ids = []
+                    
+                    for i in range(4):
+                        with member_cols[i]:
+                            # 現在設定されているメンバーのインデックスを取得
+                            current_member_id = current_member_ids[i] if i < len(current_member_ids) else None
+                            default_index = 0  # デフォルトは「選択なし」
+                            
+                            if current_member_id:
+                                for idx, option in enumerate(member_options):
+                                    if option["page_id"] == current_member_id:
+                                        default_index = idx
+                                        break
+                            
+                            selected_member = st.selectbox(
+                                f"メンバー{i+1}",
+                                member_options,
+                                index=default_index,
+                                format_func=lambda x: x["name"],
+                                key=f"edit_member_{i+1}"
+                            )
+                            
+                            selected_member_ids.append(selected_member["page_id"] if selected_member["page_id"] else None)
+                    
+                    # 選択されたメンバーをフィルタリング（Noneを除外）
+                    edit_selected_members = []
+                    for member_id in selected_member_ids:
+                        if member_id:
+                            for user in users:
+                                if user["page_id"] == member_id:
+                                    edit_selected_members.append(user)
+                                    break
                     # オリンピック設定
                     st.subheader("オリンピック設定")
                     
@@ -378,10 +410,11 @@ def main():
                                 "diamond": {"number": edit_diamond_rate}
                             }
                             
-                            # メンバーのリレーションを更新（既存をクリアして新規設定）
+                            # メンバーのリレーションを更新（プルダウンの選択順序で設定）
                             for i in range(1, 5):
-                                if i <= len(edit_selected_members):
-                                    properties[f"member{i}"] = {"relation": [{"id": edit_selected_members[i-1]["page_id"]}]}
+                                member_id = selected_member_ids[i-1] if i-1 < len(selected_member_ids) else None
+                                if member_id:
+                                    properties[f"member{i}"] = {"relation": [{"id": member_id}]}
                                 else:
                                     properties[f"member{i}"] = {"relation": []}
                             
