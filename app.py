@@ -838,6 +838,41 @@ def main():
         # ヘビスコアテーブルを表示
         snake_df = pd.DataFrame(snake_table_data[1:], columns=snake_table_data[0])
         st.dataframe(snake_df, use_container_width=True, hide_index=True)
+
+        # 各メンバーのOUT合計を計算
+        member_out_totals = {}
+
+        for member in game_members:
+            member_name = member["name"]
+            total_out_score = 0
+            
+            # 3の倍数ホール（3、6、9、12、15、18）をチェック
+            for target_hole in [3, 6, 9, 12, 15, 18]:
+                if target_hole in score_data[member_name] and score_data[member_name][target_hole].get("snake_out", False):
+                    # そのホールまでの3ホール区間の全メンバー合計ヘビ数を計算
+                    start_hole = target_hole - 2  # 3→1, 6→4, 9→7, 12→10, 15→13, 18→16
+                    period_total = 0
+                    
+                    for check_member in game_members:
+                        check_member_name = check_member["name"]
+                        for hole in range(start_hole, target_hole + 1):
+                            if hole in score_data[check_member_name]:
+                                period_total += score_data[check_member_name][hole]["snake"]
+                    
+                    total_out_score += period_total
+            
+            member_out_totals[member_name] = total_out_score
+            
+        # 結果を表示
+        out_total_cols = st.columns(len(game_members))
+        for i, member in enumerate(game_members):
+            member_name = member["name"]
+            with out_total_cols[i]:
+                st.metric(
+                    member_name,
+                    f"{member_out_totals[member_name]}",
+                    help="OUTになった時の3ホール区間合計ヘビ数の累計"
+                )
         
         # オリンピックスコア確認シートを追加
         st.subheader("🏅 オリンピックスコア")
@@ -916,41 +951,6 @@ def main():
             return styled_df
         
         st.dataframe(style_olympic_totals(olympic_df), use_container_width=True, hide_index=True)
-        
-        # 各メンバーのOUT合計を計算
-        member_out_totals = {}
-
-        for member in game_members:
-            member_name = member["name"]
-            total_out_score = 0
-            
-            # 3の倍数ホール（3、6、9、12、15、18）をチェック
-            for target_hole in [3, 6, 9, 12, 15, 18]:
-                if target_hole in score_data[member_name] and score_data[member_name][target_hole].get("snake_out", False):
-                    # そのホールまでの3ホール区間の全メンバー合計ヘビ数を計算
-                    start_hole = target_hole - 2  # 3→1, 6→4, 9→7, 12→10, 15→13, 18→16
-                    period_total = 0
-                    
-                    for check_member in game_members:
-                        check_member_name = check_member["name"]
-                        for hole in range(start_hole, target_hole + 1):
-                            if hole in score_data[check_member_name]:
-                                period_total += score_data[check_member_name][hole]["snake"]
-                    
-                    total_out_score += period_total
-            
-            member_out_totals[member_name] = total_out_score
-            
-        # 結果を表示
-        out_total_cols = st.columns(len(game_members))
-        for i, member in enumerate(game_members):
-            member_name = member["name"]
-            with out_total_cols[i]:
-                st.metric(
-                    member_name,
-                    f"{member_out_totals[member_name]}",
-                    help="OUTになった時の3ホール区間合計ヘビ数の累計"
-                )
         
         # オリンピック設定値を表示
         st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
