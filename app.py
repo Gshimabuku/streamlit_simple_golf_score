@@ -249,19 +249,21 @@ def main():
             member_scores = {}
             olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
             
+            # メンバーを横に並べて表示
+            member_cols = st.columns(len(game_members))
+            
             # 各メンバーの入力欄を作成
             for i, member in enumerate(game_members):
                 member_index = i + 1
                 score_id = f"{selected_game['id']}_{member_index}_{hole_number}"
                 existing_score = next((score for score in existing_scores if score["id"] == score_id), None)
                 
-                # 既存データがある場合の表示
-                data_status = "📊 既存データ" if existing_score else "🆕 新規入力"
-                st.write(f"**{member['name']}** {data_status}")
-                
-                cols = st.columns(4)
-                
-                with cols[0]:
+                # 各メンバーのカラム内で縦に配置
+                with member_cols[i]:
+                    # 既存データがある場合の表示
+                    data_status = "📊" if existing_score else "🆕"
+                    st.markdown(f"### {member['name']} {data_status}")
+                    
                     stroke = st.number_input(
                         "ストローク数",
                         min_value=1,
@@ -269,8 +271,7 @@ def main():
                         value=existing_score["stroke"] if existing_score else 4,
                         key=f"stroke_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
-                
-                with cols[1]:
+                    
                     putt = st.number_input(
                         "パット数",
                         min_value=0,
@@ -278,8 +279,7 @@ def main():
                         value=existing_score["putt"] if existing_score else 2,
                         key=f"putt_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
-                
-                with cols[2]:
+                    
                     snake = st.number_input(
                         "ミス数",
                         min_value=0,
@@ -287,14 +287,19 @@ def main():
                         value=existing_score["snake"] if existing_score else 0,
                         key=f"snake_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
-                
-                with cols[3]:
+                    
                     olympic = st.selectbox(
                         "パットゲーム",
                         olympic_options,
                         index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0,
                         key=f"olympic_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
+                    
+                    # 既存データの詳細情報を表示
+                    if existing_score:
+                        st.caption("📊 既存データが読み込まれています")
+                    else:
+                        st.caption("🆕 新規入力")
                 
                 member_scores[member['page_id']] = {
                     'member': member,
@@ -306,9 +311,8 @@ def main():
                     'olympic': olympic,
                     'existing_score': existing_score
                 }
-                
-                st.divider()
             
+            st.markdown("---")  # 区切り線
             submitted = st.form_submit_button("全メンバーのスコアを保存", use_container_width=True)
             
             if submitted:
