@@ -774,14 +774,13 @@ def main():
         snake_table_data = []
         
         # ヘッダー行（3ホールごと）
-        snake_header = ["名前", "1-3", "4-6", "7-9", "10-12", "13-15", "16-18", "計"]
+        snake_header = ["名前", "1-3", "4-6", "7-9", "10-12", "13-15", "16-18"]
         snake_table_data.append(snake_header)
         
         # 各メンバーのヘビスコア行
         for member in game_members:
             member_name = member["name"]
             snake_row = [member_name]
-            total_snake = 0
             
             # 3ホールごとの集計
             for start_hole in [1, 4, 7, 10, 13, 16]:
@@ -791,14 +790,11 @@ def main():
                         period_snake += score_data[member_name][hole]["snake"]
                 
                 snake_row.append(str(period_snake) if period_snake > 0 else "0")
-                total_snake += period_snake
             
-            snake_row.append(str(total_snake))
             snake_table_data.append(snake_row)
         
         # 全メンバー合計行を追加
         total_row = ["合計"]
-        grand_total = 0
         for start_hole in [1, 4, 7, 10, 13, 16]:
             period_total = 0
             for member in game_members:
@@ -807,9 +803,7 @@ def main():
                     if hole in score_data[member_name]:
                         period_total += score_data[member_name][hole]["snake"]
             total_row.append(str(period_total))
-            grand_total += period_total
         
-        total_row.append(str(grand_total))
         snake_table_data.append(total_row)
         
         # アウトメンバー行を追加
@@ -826,7 +820,6 @@ def main():
             else:
                 out_row.append("-")
         
-        out_row.append("-")  # 計の欄
         snake_table_data.append(out_row)
         
         # ヘビスコアテーブルを表示
