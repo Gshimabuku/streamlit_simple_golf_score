@@ -317,6 +317,59 @@ def main():
                         max_selections=4
                     )
                     
+                    # オリンピック率設定
+                    st.subheader("オリンピック率設定")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        edit_gold_rate = st.number_input(
+                            "ゴールド率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('gold', 0),
+                            step=5,
+                            help="ゴールドが出る確率（%）"
+                        )
+                        
+                        edit_silver_rate = st.number_input(
+                            "シルバー率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('silver', 0),
+                            step=5,
+                            help="シルバーが出る確率（%）"
+                        )
+                    
+                    with col2:
+                        edit_bronze_rate = st.number_input(
+                            "ブロンズ率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('bronze', 0),
+                            step=5,
+                            help="ブロンズが出る確率（%）"
+                        )
+                        
+                        edit_iron_rate = st.number_input(
+                            "アイアン率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('iron', 0),
+                            step=5,
+                            help="アイアンが出る確率（%）"
+                        )
+                    
+                    with col3:
+                        edit_diamond_rate = st.number_input(
+                            "ダイヤモンド率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('diamond', 0),
+                            step=5,
+                            help="ダイヤモンドが出る確率（%）"
+                        )
+                    
                     if st.form_submit_button("ラウンドを更新"):
                         if not edit_selected_members:
                             st.error("少なくとも1人のメンバーを選択してください。")
