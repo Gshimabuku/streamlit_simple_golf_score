@@ -84,11 +84,11 @@ class NotionClient:
                 place = page["properties"]["place"]["rich_text"][0]["text"]["content"] if page["properties"]["place"]["rich_text"] else ""
                 
                 # レート情報を取得
-                gold = page["properties"]["gold"]["number"] if "gold" in page["properties"] and page["properties"]["gold"]["number"] else 10
-                silver = page["properties"]["silver"]["number"] if "silver" in page["properties"] and page["properties"]["silver"]["number"] else 5
-                bronze = page["properties"]["bronze"]["number"] if "bronze" in page["properties"] and page["properties"]["bronze"]["number"] else 3
-                iron = page["properties"]["iron"]["number"] if "iron" in page["properties"] and page["properties"]["iron"]["number"] else -3
-                diamond = page["properties"]["diamond"]["number"] if "diamond" in page["properties"] and page["properties"]["diamond"]["number"] else 20
+                gold = page["properties"]["gold"]["number"] if "gold" in page["properties"] and page["properties"]["gold"]["number"] else 4
+                silver = page["properties"]["silver"]["number"] if "silver" in page["properties"] and page["properties"]["silver"]["number"] else 3
+                bronze = page["properties"]["bronze"]["number"] if "bronze" in page["properties"] and page["properties"]["bronze"]["number"] else 2
+                iron = page["properties"]["iron"]["number"] if "iron" in page["properties"] and page["properties"]["iron"]["number"] else 1
+                diamond = page["properties"]["diamond"]["number"] if "diamond" in page["properties"] and page["properties"]["diamond"]["number"] else 5
                 
                 # メンバー情報を取得
                 members = []
