@@ -963,6 +963,34 @@ def main():
         # オリンピック設定値を表示
         st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
         
+        # バーディースコア確認シートを追加
+        st.subheader("🦅 バーディースコア")
+        
+        # 各メンバーのバーディー取得数を計算
+        member_birdie_totals = {}
+        
+        for member in game_members:
+            member_name = member["name"]
+            birdie_count = 0
+            
+            # 全18ホールのバーディーをカウント
+            for hole in range(1, 19):
+                if hole in score_data[member_name] and score_data[member_name][hole].get("birdie", False):
+                    birdie_count += 1
+            
+            member_birdie_totals[member_name] = birdie_count
+        
+        # 結果を表示
+        birdie_total_cols = st.columns(len(game_members))
+        for i, member in enumerate(game_members):
+            member_name = member["name"]
+            with birdie_total_cols[i]:
+                st.metric(
+                    member_name,
+                    f"{member_birdie_totals[member_name]}",
+                    help="バーディー取得数の合計"
+                )
+        
         # 詳細情報（オリンピック、ヘビ）の表示
         st.subheader("🏅 詳細情報")
         
