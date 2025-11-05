@@ -229,79 +229,118 @@ def main():
             st.warning("このラウンドにメンバーが設定されていません。")
             return
         
-        # メンバー選択
-        member_options = {member["name"]: member for member in game_members}
-        selected_member_name = st.selectbox("プレイヤーを選択", list(member_options.keys()))
-        selected_member = member_options[selected_member_name]
-        
         # ホール選択
         hole_number = st.selectbox("ホール番号", list(range(1, 19)))
         
+        st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
+        
         # 既存のスコアを確認
         existing_scores = notion.get_scores(selected_game["id"])
-        member_index = game_members.index(selected_member) + 1
-        score_id = f"{selected_game['id']}_{member_index}_{hole_number}"
-        existing_score = next((score for score in existing_scores if score["id"] == score_id), None)
         
-        # スコア入力フォーム
-        with st.form("score_form"):
-            col1, col2, col3 = st.columns(3)
+        # 全メンバーのスコア入力フォーム
+        with st.form("hole_score_form"):
+            member_scores = {}
+            olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
             
-            with col1:
-                stroke = st.number_input(
-                    "ストローク数",
-                    min_value=1,
-                    max_value=15,
-                    value=existing_score["stroke"] if existing_score else 4
-                )
-                putt = st.number_input(
-                    "パット数",
-                    min_value=0,
-                    max_value=5,
-                    value=existing_score["putt"] if existing_score else 2
-                )
-            
-            with col2:
-                snake = st.number_input(
-                    "ミス数",
-                    min_value=0,
-                    max_value=10,
-                    value=existing_score["snake"] if existing_score else 0
-                )
-                olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
-                olympic = st.selectbox(
-                    "パットゲーム",
-                    olympic_options,
-                    index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0
-                )
-            
-            submitted = st.form_submit_button("スコアを保存")
-            
-            if submitted:
-                # スコアデータのプロパティを構築
-                properties = {
-                    "id": {"title": [{"text": {"content": score_id}}]},
-                    "game": {"relation": [{"id": selected_game["page_id"]}]},
-                    "user": {"relation": [{"id": selected_member["page_id"]}]},
-                    "hole": {"number": hole_number},
-                    "stroke": {"number": stroke},
-                    "putt": {"number": putt},
-                    "snake": {"number": snake}
+            # 各メンバーの入力欄を作成
+            for i, member in enumerate(game_members):
+                member_index = i + 1
+                score_id = f"{selected_game['id']}_{member_index}_{hole_number}"
+                existing_score = next((score for score in existing_scores if score["id"] == score_id), None)
+                
+                st.write(f"**{member['name']}**")
+                cols = st.columns(4)
+                
+                with cols[0]:
+                    stroke = st.number_input(
+                        "ストローク数",
+                        min_value=1,
+                        max_value=15,
+                        value=existing_score["stroke"] if existing_score else 4,
+                        key=f"stroke_{member['page_id']}"
+                    )
+                
+                with cols[1]:
+                    putt = st.number_input(
+                        "パット数",
+                        min_value=0,
+                        max_value=5,
+                        value=existing_score["putt"] if existing_score else 2,
+                        key=f"putt_{member['page_id']}"
+                    )
+                
+                with cols[2]:
+                    snake = st.number_input(
+                        "ミス数",
+                        min_value=0,
+                        max_value=10,
+                        value=existing_score["snake"] if existing_score else 0,
+                        key=f"snake_{member['page_id']}"
+                    )
+                
+                with cols[3]:
+                    olympic = st.selectbox(
+                        "パットゲーム",
+                        olympic_options,
+                        index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0,
+                        key=f"olympic_{member['page_id']}"
+                    )
+                
+                member_scores[member['page_id']] = {
+                    'member': member,
+                    'member_index': member_index,
+                    'score_id': score_id,
+                    'stroke': stroke,
+                    'putt': putt,
+                    'snake': snake,
+                    'olympic': olympic,
+                    'existing_score': existing_score
                 }
                 
-                if olympic:
-                    properties["olympic"] = {"select": {"name": olympic}}
+                st.divider()
+            
+            submitted = st.form_submit_button("全メンバーのスコアを保存", use_container_width=True)
+            
+            if submitted:
+                success_count = 0
+                error_count = 0
                 
-                if existing_score:
-                    # 既存スコアを更新
-                    result = notion.update_page(existing_score["page_id"], properties)
-                    if result:
-                        st.success(f"ホール{hole_number}のスコアを更新しました！")
+                # 各メンバーのスコアを保存
+                for member_page_id, score_data in member_scores.items():
+                    # スコアデータのプロパティを構築
+                    properties = {
+                        "id": {"title": [{"text": {"content": score_data['score_id']}}]},
+                        "game": {"relation": [{"id": selected_game["page_id"]}]},
+                        "user": {"relation": [{"id": score_data['member']['page_id']}]},
+                        "hole": {"number": hole_number},
+                        "stroke": {"number": score_data['stroke']},
+                        "putt": {"number": score_data['putt']},
+                        "snake": {"number": score_data['snake']}
+                    }
+                    
+                    if score_data['olympic']:
+                        properties["olympic"] = {"select": {"name": score_data['olympic']}}
+                    
+                    if score_data['existing_score']:
+                        # 既存スコアを更新
+                        result = notion.update_page(score_data['existing_score']['page_id'], properties)
+                        if result:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                    else:
+                        # 新規スコアを作成
+                        result = notion.create_page(SCORE_DB_ID, properties)
+                        if result:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                
+                if error_count == 0:
+                    st.success(f"ホール{hole_number}の全メンバー（{success_count}名）のスコアを保存しました！")
+                    st.rerun()
                 else:
-                    # 新規スコアを作成
-                    result = notion.create_page(SCORE_DB_ID, properties)
-                    if result:
-                        st.success(f"ホール{hole_number}のスコアを記録しました！")
+                    st.warning(f"ホール{hole_number}のスコア保存完了: 成功{success_count}件、エラー{error_count}件")
     
     elif menu == "スコア確認":
         st.header("スコア確認")
