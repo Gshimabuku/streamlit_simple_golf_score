@@ -197,15 +197,15 @@ def main():
             rate_col1, rate_col2, rate_col3 = st.columns(3)
             
             with rate_col1:
-                gold_rate = st.number_input("金", min_value=0, max_value=100, value=10, help="金メダルの点数")
-                silver_rate = st.number_input("銀", min_value=0, max_value=100, value=5, help="銀メダルの点数")
+                gold_rate = st.number_input("金", min_value=0, max_value=100, value=4, help="金の点数")
+                silver_rate = st.number_input("銀", min_value=0, max_value=100, value=3, help="銀の点数")
             
             with rate_col2:
-                bronze_rate = st.number_input("銅", min_value=0, max_value=100, value=3, help="銅メダルの点数")
-                iron_rate = st.number_input("鉄", min_value=-100, max_value=0, value=-3, help="鉄の点数（マイナス）")
+                bronze_rate = st.number_input("銅", min_value=0, max_value=100, value=2, help="銅の点数")
+                iron_rate = st.number_input("鉄", min_value=0, max_value=100, value=1, help="鉄の点数")
             
             with rate_col3:
-                diamond_rate = st.number_input("ダイヤモンド", min_value=0, max_value=100, value=20, help="ダイヤモンドの点数")
+                diamond_rate = st.number_input("ダイヤモンド", min_value=0, max_value=100, value=5, help="ダイヤモンドの点数")
             
             submitted = st.form_submit_button("ラウンドを記録")
             
