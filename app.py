@@ -327,7 +327,7 @@ def main():
                             "ゴールド率",
                             min_value=0,
                             max_value=100,
-                            value=selected_game.get('gold', 0),
+                            value=max(0, selected_game.get('gold', 0) or 0),
                             step=5,
                             help="ゴールドが出る確率（%）"
                         )
@@ -336,7 +336,7 @@ def main():
                             "シルバー率",
                             min_value=0,
                             max_value=100,
-                            value=selected_game.get('silver', 0),
+                            value=max(0, selected_game.get('silver', 0) or 0),
                             step=5,
                             help="シルバーが出る確率（%）"
                         )
@@ -346,7 +346,7 @@ def main():
                             "ブロンズ率",
                             min_value=0,
                             max_value=100,
-                            value=selected_game.get('bronze', 0),
+                            value=max(0, selected_game.get('bronze', 0) or 0),
                             step=5,
                             help="ブロンズが出る確率（%）"
                         )
@@ -355,7 +355,7 @@ def main():
                             "アイアン率",
                             min_value=0,
                             max_value=100,
-                            value=selected_game.get('iron', 0),
+                            value=max(0, selected_game.get('iron', 0) or 0),
                             step=5,
                             help="アイアンが出る確率（%）"
                         )
@@ -365,7 +365,7 @@ def main():
                             "ダイヤモンド率",
                             min_value=0,
                             max_value=100,
-                            value=selected_game.get('diamond', 0),
+                            value=max(0, selected_game.get('diamond', 0) or 0),
                             step=5,
                             help="ダイヤモンドが出る確率（%）"
                         )
