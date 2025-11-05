@@ -675,19 +675,19 @@ def main():
         # スコアシート形式のテーブルを作成
         st.subheader("📋 スコアシート")
         
-        # テーブルデータを構築（名前とパットを統合）
+        # テーブルデータを構築
         table_data = []
         
         # ヘッダー行
         header = ["名前"] + [str(i) for i in range(1, 10)] + ["IN"] + [str(i) for i in range(10, 19)] + ["OUT", "計"]
         table_data.append(header)
         
-        # 各メンバーのスコア行（ストロークとパットを統合）
+        # 各メンバーのスコア行
         for member in game_members:
             member_name = member["name"]
             
             # ストローク行
-            stroke_row = [f"{member_name}\n(ストローク)"]
+            stroke_row = [member_name]
             in_total = 0
             out_total = 0
             
@@ -717,7 +717,7 @@ def main():
             table_data.append(stroke_row)
             
             # パット行
-            putt_row = [f"(パット)"]
+            putt_row = [""]  # 名前欄は空白
             in_putt_total = 0
             out_putt_total = 0
             
@@ -750,46 +750,7 @@ def main():
         import pandas as pd
         df = pd.DataFrame(table_data[1:], columns=table_data[0])
         
-        # スタイリング関数
-        def style_scoresheet(df):
-            def apply_style(val, row_idx, col_name):
-                styles = []
-                
-                # IN, OUT, 計列の数値を太字にする
-                if col_name in ["IN", "OUT", "計"] and val != "-":
-                    styles.append("font-weight: bold")
-                
-                # 名前列のスタイリング
-                if col_name == "名前":
-                    if row_idx % 2 == 0:  # ストローク行
-                        styles.extend([
-                            "vertical-align: top",
-                            "text-align: center",
-                            "padding: 8px 4px"
-                        ])
-                    else:  # パット行
-                        styles.extend([
-                            "vertical-align: top", 
-                            "text-align: center",
-                            "padding: 4px",
-                            "font-size: 0.9em",
-                            "color: #666"
-                        ])
-                
-                return "; ".join(styles) if styles else ""
-            
-            # スタイルを適用
-            styled_df = df.style
-            for i in range(len(df)):
-                for col in df.columns:
-                    styled_df = styled_df.apply(
-                        lambda x, r=i, c=col: [apply_style(val, r, c) for val in x] if x.name == c else [""] * len(x),
-                        axis=0, subset=[col]
-                    )
-            
-            return styled_df
-        
-        # シンプルなIN/OUT/計の太字スタイリング
+        # IN/OUT/計列の数値セルを太字にするスタイリング
         def style_bold_totals(df):
             def apply_bold_style(val):
                 if str(val) != "-" and str(val).isdigit():
