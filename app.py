@@ -140,6 +140,7 @@ class NotionClient:
                 snake = page["properties"]["snake"]["number"] if page["properties"]["snake"]["number"] else 0
                 olympic = page["properties"]["olympic"]["select"]["name"] if page["properties"]["olympic"]["select"] else ""
                 snake_out = page["properties"]["snake_out"]["checkbox"] if "snake_out" in page["properties"] and page["properties"]["snake_out"] else False
+                birdie = page["properties"]["birdie"]["checkbox"] if "birdie" in page["properties"] and page["properties"]["birdie"] else False
                 
                 # ゲームとユーザーのリレーション
                 game_relation = page["properties"]["game"]["relation"][0]["id"] if page["properties"]["game"]["relation"] else ""
@@ -153,6 +154,7 @@ class NotionClient:
                     "snake": snake,
                     "olympic": olympic,
                     "snake_out": snake_out,
+                    "birdie": birdie,
                     "game_relation": game_relation,
                     "user_relation": user_relation,
                     "page_id": page["id"]
@@ -523,6 +525,14 @@ def main():
                         key=f"stroke_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
+                    # バーディーチェックボックスを追加
+                    birdie = st.checkbox(
+                        "🦅 バーディー",
+                        value=existing_score["birdie"] if existing_score else False,
+                        key=f"birdie_{member['page_id']}_{hole_number}",
+                        help="バーディーの場合にチェック"
+                    )
+                    
                     putt = st.number_input(
                         "パット",
                         min_value=0,
@@ -571,6 +581,7 @@ def main():
                     'snake': snake,
                     'olympic': olympic,
                     'snake_out': snake_out,
+                    'birdie': birdie,
                     'existing_score': existing_score
                 }
             
@@ -595,7 +606,8 @@ def main():
                         "hole": {"number": hole_number},
                         "stroke": {"number": score_data['stroke']},
                         "putt": {"number": score_data['putt']},
-                        "snake": {"number": score_data['snake']}
+                        "snake": {"number": score_data['snake']},
+                        "birdie": {"checkbox": score_data['birdie']}
                     }
                     
                     # 3の倍数ホールの場合のみsnake_outを追加
@@ -669,7 +681,8 @@ def main():
                     "putt": score["putt"],
                     "snake": score["snake"],
                     "olympic": score["olympic"],
-                    "snake_out": score.get("snake_out", False)
+                    "snake_out": score.get("snake_out", False),
+                    "birdie": score.get("birdie", False)
                 }
         
         # スコアシート形式のテーブルを作成
@@ -881,6 +894,8 @@ def main():
                                 st.write(f"🏅 {hole_data['olympic']}")
                             if hole_data['snake'] > 0:
                                 st.write(f"🐍 ヘビ: {hole_data['snake']}")
+                            if hole_data.get('birdie', False):
+                                st.write("🦅 **バーディー!**")
                             # 3の倍数ホールでsnake_outを表示
                             if hole % 3 == 0 and hole_data.get('snake_out', False):
                                 st.write("🐍 **アウト!**")
