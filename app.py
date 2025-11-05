@@ -611,19 +611,6 @@ def main():
                     help="OUTになった時の3ホール区間合計ヘビ数の累計"
                 )
         
-        # ランキング表示
-        sorted_members = sorted(member_out_totals.items(), key=lambda x: x[1])
-        st.write("**🏆 ランキング（少ない順）**")
-        for rank, (member_name, score) in enumerate(sorted_members, 1):
-            if rank == 1:
-                st.write(f"🥇 {rank}位: {member_name} → {score}")
-            elif rank == 2:
-                st.write(f"🥈 {rank}位: {member_name} → {score}")
-            elif rank == 3:
-                st.write(f"🥉 {rank}位: {member_name} → {score}")
-            else:
-                st.write(f"🏅 {rank}位: {member_name} → {score}")
-        
         # 詳細情報（オリンピック、ヘビ）の表示
         st.subheader("🏅 詳細情報")
         
