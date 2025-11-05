@@ -917,12 +917,9 @@ def main():
         
         st.dataframe(style_olympic_totals(olympic_df), use_container_width=True, hide_index=True)
         
-        # オリンピック設定値を表示
-        st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
-        
         # 各メンバーのOUT合計を計算
         member_out_totals = {}
-        
+
         for member in game_members:
             member_name = member["name"]
             total_out_score = 0
@@ -943,7 +940,7 @@ def main():
                     total_out_score += period_total
             
             member_out_totals[member_name] = total_out_score
-        
+            
         # 結果を表示
         out_total_cols = st.columns(len(game_members))
         for i, member in enumerate(game_members):
@@ -954,6 +951,9 @@ def main():
                     f"{member_out_totals[member_name]}",
                     help="OUTになった時の3ホール区間合計ヘビ数の累計"
                 )
+        
+        # オリンピック設定値を表示
+        st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
         
         # 詳細情報（オリンピック、ヘビ）の表示
         st.subheader("🏅 詳細情報")
