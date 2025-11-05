@@ -281,7 +281,7 @@ def main():
                     with col1:
                         edit_date = st.date_input(
                             "プレー日",
-                            value=datetime.datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
+                            value=datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
                         )
                         
                         edit_place = st.text_input(
