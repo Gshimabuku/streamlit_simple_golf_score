@@ -6,10 +6,10 @@ import os
 
 # Notion API設定
 NOTION_API_URL = "https://api.notion.com/v1"
-API_KEY = st.secrets["api_key"]
-USER_DB_ID = st.secrets["user_db_id"]
-GAME_DB_ID = st.secrets["game_db_id"]
-SCORE_DB_ID = st.secrets["score_db_id"]
+API_KEY = st.secrets[notion]["api_key"]
+USER_DB_ID = st.secrets[notion]["user_db_id"]
+GAME_DB_ID = st.secrets[notion]["game_db_id"]
+SCORE_DB_ID = st.secrets[notion]["score_db_id"]
 
 HEADERS = {
     "Authorization": f"Bearer {API_KEY}",
