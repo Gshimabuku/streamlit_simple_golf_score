@@ -748,8 +748,26 @@ def main():
         
         # Streamlitでテーブルを表示
         import pandas as pd
-        df = pd.DataFrame(table_data[1:], columns=table_data[0])
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        # MarkdownテーブルでIN/OUT/計の数値を太字にして表示
+        header = table_data[0]
+        rows = table_data[1:]
+        md_lines = []
+        # ヘッダー
+        md_lines.append("| " + " | ".join(header) + " |")
+        md_lines.append("| " + " | ".join(["---"] * len(header)) + " |")
+
+        for row in rows:
+            new_cells = []
+            for idx, cell in enumerate(row):
+                col_name = header[idx]
+                # IN, OUT, 計列では数値（ハイフン以外）を太字にする
+                if col_name in ["IN", "OUT", "計"] and cell != "-":
+                    new_cells.append(f"**{cell}**")
+                else:
+                    new_cells.append(cell)
+            md_lines.append("| " + " | ".join(new_cells) + " |")
+
+        st.markdown("\n".join(md_lines), unsafe_allow_html=True)
         
         # ヘビスコア確認シートを追加
         st.subheader("🐍 ヘビスコア")
