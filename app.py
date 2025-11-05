@@ -403,43 +403,108 @@ def main():
                     "olympic": score["olympic"]
                 }
         
-        # スコア表を表示
-        for hole in range(1, 19):
-            if any(hole in player_scores for player_scores in score_data.values()):
-                st.write(f"**ホール {hole}**")
-                cols = st.columns(len(game_members))
-                for i, member in enumerate(game_members):
-                    with cols[i]:
-                        if hole in score_data[member["name"]]:
-                            hole_data = score_data[member["name"]][hole]
-                            st.metric(
-                                member["name"],
-                                f"ストローク: {hole_data['stroke']}",
-                                f"パット: {hole_data['putt']}, ミス: {hole_data['snake']}"
-                            )
-                            if hole_data["olympic"]:
-                                st.write(f"🏅 {hole_data['olympic']}")
-                        else:
-                            st.metric(member["name"], "未記録", "")
-                st.divider()
+        # スコアシート形式のテーブルを作成
+        st.subheader("📋 スコアシート")
         
-        # 合計スコア計算
-        st.subheader("📋 合計スコア")
-        cols = st.columns(len(game_members))
-        for i, member in enumerate(game_members):
-            with cols[i]:
-                total_stroke = sum(hole_data["stroke"] for hole_data in score_data[member["name"]].values())
-                total_putt = sum(hole_data["putt"] for hole_data in score_data[member["name"]].values())
-                total_snake = sum(hole_data["snake"] for hole_data in score_data[member["name"]].values())
-                holes_played = len(score_data[member["name"]])
+        # テーブルデータを構築
+        table_data = []
+        
+        # ヘッダー行
+        header = ["名前"] + [str(i) for i in range(1, 10)] + ["IN"] + [str(i) for i in range(10, 19)] + ["OUT", "計"]
+        table_data.append(header)
+        
+        # 各メンバーのスコア行
+        for member in game_members:
+            member_name = member["name"]
+            
+            # ストローク行
+            stroke_row = [member_name]
+            in_total = 0
+            out_total = 0
+            
+            # 前半（1-9ホール）
+            for hole in range(1, 10):
+                if hole in score_data[member_name]:
+                    stroke = score_data[member_name][hole]["stroke"]
+                    stroke_row.append(str(stroke))
+                    in_total += stroke
+                else:
+                    stroke_row.append("-")
+            
+            stroke_row.append(str(in_total) if in_total > 0 else "-")
+            
+            # 後半（10-18ホール）
+            for hole in range(10, 19):
+                if hole in score_data[member_name]:
+                    stroke = score_data[member_name][hole]["stroke"]
+                    stroke_row.append(str(stroke))
+                    out_total += stroke
+                else:
+                    stroke_row.append("-")
+            
+            stroke_row.append(str(out_total) if out_total > 0 else "-")
+            stroke_row.append(str(in_total + out_total) if (in_total > 0 and out_total > 0) else "-")
+            
+            table_data.append(stroke_row)
+            
+            # パット行
+            putt_row = [""]  # 名前欄は空白
+            in_putt_total = 0
+            out_putt_total = 0
+            
+            # 前半（1-9ホール）
+            for hole in range(1, 10):
+                if hole in score_data[member_name]:
+                    putt = score_data[member_name][hole]["putt"]
+                    putt_row.append(str(putt))
+                    in_putt_total += putt
+                else:
+                    putt_row.append("-")
+            
+            putt_row.append(str(in_putt_total) if in_putt_total > 0 else "-")
+            
+            # 後半（10-18ホール）
+            for hole in range(10, 19):
+                if hole in score_data[member_name]:
+                    putt = score_data[member_name][hole]["putt"]
+                    putt_row.append(str(putt))
+                    out_putt_total += putt
+                else:
+                    putt_row.append("-")
+            
+            putt_row.append(str(out_putt_total) if out_putt_total > 0 else "-")
+            putt_row.append(str(in_putt_total + out_putt_total) if (in_putt_total > 0 and out_putt_total > 0) else "-")
+            
+            table_data.append(putt_row)
+        
+        # Streamlitでテーブルを表示
+        import pandas as pd
+        df = pd.DataFrame(table_data[1:], columns=table_data[0])
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        # 詳細情報（オリンピック、ヘビ）の表示
+        st.subheader("🏅 詳細情報")
+        
+        for member in game_members:
+            member_name = member["name"]
+            with st.expander(f"{member_name} の詳細"):
+                detail_cols = st.columns(6)
                 
-                st.metric(
-                    member["name"],
-                    f"総ストローク: {total_stroke}",
-                    f"ホール数: {holes_played}/18"
-                )
-                st.write(f"総パット: {total_putt}")
-                st.write(f"総ミス: {total_snake}")
+                for hole in range(1, 19):
+                    col_index = (hole - 1) % 6
+                    with detail_cols[col_index]:
+                        if hole in score_data[member_name]:
+                            hole_data = score_data[member_name][hole]
+                            st.write(f"**ホール {hole}**")
+                            st.write(f"ストローク: {hole_data['stroke']}")
+                            st.write(f"パット: {hole_data['putt']}")
+                            if hole_data['olympic']:
+                                st.write(f"🏅 {hole_data['olympic']}")
+                            if hole_data['snake'] > 0:
+                                st.write(f"🐍 ヘビ: {hole_data['snake']}")
+                        else:
+                            st.write(f"**ホール {hole}**")
+                            st.write("未記録")
     
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
