@@ -232,8 +232,6 @@ def main():
         # ホール選択（フォーム外で配置）
         hole_number = st.selectbox("ホール番号", list(range(1, 19)), key="hole_select")
         
-        st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
-        
         # 既存のスコアを確認（ホール変更時に動的に更新）
         existing_scores = notion.get_scores(selected_game["id"])
         
@@ -248,6 +246,13 @@ def main():
         with st.form(f"hole_score_form_{hole_number}"):  # ホール番号をキーに含める
             member_scores = {}
             olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
+            
+            # ヘッダーと保存ボタンを同じ行に配置
+            header_col, button_col = st.columns([3, 1])
+            with header_col:
+                st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
+            with button_col:
+                submitted = st.form_submit_button("保存", use_container_width=True, type="primary")
             
             # メンバーを横に並べて表示
             member_cols = st.columns(len(game_members))
@@ -311,9 +316,6 @@ def main():
                     'olympic': olympic,
                     'existing_score': existing_score
                 }
-            
-            st.markdown("---")  # 区切り線
-            submitted = st.form_submit_button("全メンバーのスコアを保存", use_container_width=True)
             
             if submitted:
                 success_count = 0
