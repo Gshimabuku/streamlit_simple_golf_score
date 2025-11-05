@@ -324,50 +324,45 @@ def main():
                     
                     with col1:
                         edit_gold_rate = st.number_input(
-                            "ゴールド率",
+                            "金",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('gold', 0) or 0),
-                            step=5,
-                            help="ゴールドが出る確率（%）"
+                            step=4,
                         )
                         
                         edit_silver_rate = st.number_input(
-                            "シルバー率",
+                            "銀",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('silver', 0) or 0),
-                            step=5,
-                            help="シルバーが出る確率（%）"
+                            step=3,
                         )
                     
                     with col2:
                         edit_bronze_rate = st.number_input(
-                            "ブロンズ率",
+                            "銅",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('bronze', 0) or 0),
-                            step=5,
-                            help="ブロンズが出る確率（%）"
+                            step=2,
                         )
                         
                         edit_iron_rate = st.number_input(
-                            "アイアン率",
+                            "鉄",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('iron', 0) or 0),
-                            step=5,
-                            help="アイアンが出る確率（%）"
+                            step=1,
                         )
                     
                     with col3:
                         edit_diamond_rate = st.number_input(
-                            "ダイヤモンド率",
+                            "ダイヤモンド",
                             min_value=0,
                             max_value=100,
                             value=max(0, selected_game.get('diamond', 0) or 0),
-                            step=5,
-                            help="ダイヤモンドが出る確率（%）"
+                            step=5
                         )
                     
                     if st.form_submit_button("ラウンドを更新"):
