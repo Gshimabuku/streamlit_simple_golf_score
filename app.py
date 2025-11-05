@@ -83,6 +83,13 @@ class NotionClient:
                 play_date = page["properties"]["play_date"]["date"]["start"] if page["properties"]["play_date"]["date"] else ""
                 place = page["properties"]["place"]["rich_text"][0]["text"]["content"] if page["properties"]["place"]["rich_text"] else ""
                 
+                # レート情報を取得
+                gold = page["properties"]["gold"]["number"] if "gold" in page["properties"] and page["properties"]["gold"]["number"] else 10
+                silver = page["properties"]["silver"]["number"] if "silver" in page["properties"] and page["properties"]["silver"]["number"] else 5
+                bronze = page["properties"]["bronze"]["number"] if "bronze" in page["properties"] and page["properties"]["bronze"]["number"] else 3
+                iron = page["properties"]["iron"]["number"] if "iron" in page["properties"] and page["properties"]["iron"]["number"] else -3
+                diamond = page["properties"]["diamond"]["number"] if "diamond" in page["properties"] and page["properties"]["diamond"]["number"] else 20
+                
                 # メンバー情報を取得
                 members = []
                 for i in range(1, 5):
@@ -96,6 +103,11 @@ class NotionClient:
                     "play_date": play_date,
                     "place": place,
                     "members": members,
+                    "gold": gold,
+                    "silver": silver,
+                    "bronze": bronze,
+                    "iron": iron,
+                    "diamond": diamond,
                     "page_id": page["id"]
                 })
         return games
@@ -150,7 +162,7 @@ def main():
     # サイドバーでメニュー選択
     menu = st.sidebar.selectbox(
         "メニューを選択",
-        ["ラウンド記録", "スコア入力", "スコア確認", "ユーザー管理"]
+        ["ラウンド記録", "ラウンド編集", "スコア入力", "スコア確認", "ユーザー管理"]
     )
     
     if menu == "ラウンド記録":
@@ -180,6 +192,21 @@ def main():
                     if member != "選択なし":
                         selected_members.append(user_options[member])
             
+            # オリンピックレート設定
+            st.write("🏅 オリンピックレート設定")
+            rate_col1, rate_col2, rate_col3 = st.columns(3)
+            
+            with rate_col1:
+                gold_rate = st.number_input("金", min_value=0, max_value=100, value=10, help="金メダルの点数")
+                silver_rate = st.number_input("銀", min_value=0, max_value=100, value=5, help="銀メダルの点数")
+            
+            with rate_col2:
+                bronze_rate = st.number_input("銅", min_value=0, max_value=100, value=3, help="銅メダルの点数")
+                iron_rate = st.number_input("鉄", min_value=-100, max_value=0, value=-3, help="鉄の点数（マイナス）")
+            
+            with rate_col3:
+                diamond_rate = st.number_input("ダイヤモンド", min_value=0, max_value=100, value=20, help="ダイヤモンドの点数")
+            
             submitted = st.form_submit_button("ラウンドを記録")
             
             if submitted:
@@ -195,7 +222,12 @@ def main():
                     properties = {
                         "id": {"title": [{"text": {"content": game_id}}]},
                         "play_date": {"date": {"start": play_date.isoformat()}},
-                        "place": {"rich_text": [{"text": {"content": place}}]}
+                        "place": {"rich_text": [{"text": {"content": place}}]},
+                        "gold": {"number": gold_rate},
+                        "silver": {"number": silver_rate},
+                        "bronze": {"number": bronze_rate},
+                        "iron": {"number": iron_rate},
+                        "diamond": {"number": diamond_rate}
                     }
                     
                     # メンバーのリレーションを追加
@@ -206,6 +238,169 @@ def main():
                     if result:
                         st.success(f"ラウンド '{game_id}' を記録しました！")
                         st.rerun()
+    
+    elif menu == "ラウンド編集":
+        st.header("ラウンド編集")
+        
+        # 既存のゲーム一覧を取得
+        games = notion.get_games()
+        users = notion.get_users()
+        
+        if not games:
+            st.warning("編集可能なラウンドがありません。まずラウンドを記録してください。")
+        else:
+            # ゲーム選択
+            game_options = []
+            for game in games:
+                date_str = game['play_date']
+                place = game['place']
+                members = []
+                for i in range(1, 5):
+                    member_name = game.get(f'member{i}_name')
+                    if member_name:
+                        members.append(member_name)
+                
+                game_info = f"{date_str} - {place} ({', '.join(members)})"
+                game_options.append({"label": game_info, "value": game})
+            
+            selected_game_option = st.selectbox(
+                "編集するラウンドを選択してください",
+                game_options,
+                format_func=lambda x: x["label"]
+            )
+            
+            if selected_game_option:
+                selected_game = selected_game_option["value"]
+                
+                with st.form("edit_round_form"):
+                    st.subheader("ラウンド情報編集")
+                    
+                    # 既存の値を初期値として設定
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        edit_date = st.date_input(
+                            "プレー日",
+                            value=datetime.datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
+                        )
+                        
+                        edit_place = st.text_input(
+                            "ゴルフ場名",
+                            value=selected_game.get('place', '')
+                        )
+                    
+                    with col2:
+                        edit_game_id = st.text_input(
+                            "ラウンドID",
+                            value=selected_game.get('game_id', '')
+                        )
+                    
+                    # メンバー選択（最大4人）
+                    st.subheader("メンバー選択")
+                    
+                    # 現在のメンバーを取得
+                    current_members = []
+                    for i in range(1, 5):
+                        member_name = selected_game.get(f'member{i}_name')
+                        if member_name:
+                            # ユーザーリストから該当するユーザーを検索
+                            for user in users:
+                                if user["name"] == member_name:
+                                    current_members.append(user)
+                                    break
+                    
+                    edit_selected_members = st.multiselect(
+                        "メンバーを選択してください（最大4人）",
+                        users,
+                        default=current_members,
+                        format_func=lambda x: x["name"],
+                        max_selections=4
+                    )
+                    
+                    # オリンピック率設定
+                    st.subheader("オリンピック率設定")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        edit_gold_rate = st.number_input(
+                            "ゴールド率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('gold', 0),
+                            step=5,
+                            help="ゴールドが出る確率（%）"
+                        )
+                        
+                        edit_silver_rate = st.number_input(
+                            "シルバー率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('silver', 0),
+                            step=5,
+                            help="シルバーが出る確率（%）"
+                        )
+                    
+                    with col2:
+                        edit_bronze_rate = st.number_input(
+                            "ブロンズ率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('bronze', 0),
+                            step=5,
+                            help="ブロンズが出る確率（%）"
+                        )
+                        
+                        edit_iron_rate = st.number_input(
+                            "アイアン率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('iron', 0),
+                            step=5,
+                            help="アイアンが出る確率（%）"
+                        )
+                    
+                    with col3:
+                        edit_diamond_rate = st.number_input(
+                            "ダイヤモンド率",
+                            min_value=0,
+                            max_value=100,
+                            value=selected_game.get('diamond', 0),
+                            step=5,
+                            help="ダイヤモンドが出る確率（%）"
+                        )
+                    
+                    if st.form_submit_button("ラウンドを更新"):
+                        if not edit_selected_members:
+                            st.error("少なくとも1人のメンバーを選択してください。")
+                        elif not edit_place:
+                            st.error("ゴルフ場名を入力してください。")
+                        elif not edit_game_id:
+                            st.error("ラウンドIDを入力してください。")
+                        else:
+                            # 更新用のプロパティを作成
+                            properties = {
+                                "play_date": {"date": {"start": edit_date.strftime("%Y-%m-%d")}},
+                                "place": {"rich_text": [{"text": {"content": edit_place}}]},
+                                "game_id": {"title": [{"text": {"content": edit_game_id}}]},
+                                "gold": {"number": edit_gold_rate},
+                                "silver": {"number": edit_silver_rate},
+                                "bronze": {"number": edit_bronze_rate},
+                                "iron": {"number": edit_iron_rate},
+                                "diamond": {"number": edit_diamond_rate}
+                            }
+                            
+                            # メンバーのリレーションを更新（既存をクリアして新規設定）
+                            for i in range(1, 5):
+                                if i <= len(edit_selected_members):
+                                    properties[f"member{i}"] = {"relation": [{"id": edit_selected_members[i-1]["page_id"]}]}
+                                else:
+                                    properties[f"member{i}"] = {"relation": []}
+                            
+                            result = notion.update_page(selected_game["page_id"], properties)
+                            if result:
+                                st.success(f"ラウンド '{edit_game_id}' を更新しました！")
+                                st.rerun()
     
     elif menu == "スコア入力":
         st.header("スコア入力")
@@ -508,7 +703,7 @@ def main():
         st.dataframe(df, use_container_width=True, hide_index=True)
         
         # ヘビスコア確認シートを追加
-        st.subheader("🐍 ヘビスコア確認シート")
+        st.subheader("🐍 ヘビスコア")
         
         # ヘビスコアのテーブルデータを構築
         snake_table_data = []
