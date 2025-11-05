@@ -457,48 +457,25 @@ def main():
         if "selected_hole" not in st.session_state:
             st.session_state.selected_hole = 1
         
-        # 前半（1-9ホール）と後半（10-18ホール）を二列で表示
-        col1, col2 = st.columns(2)
+        # 1行目：1-9ホール
+        st.write("**前半（1-9ホール）**")
+        hole_cols_1 = st.columns(9)
+        for i in range(1, 10):
+            with hole_cols_1[i-1]:
+                button_type = "primary" if st.session_state.selected_hole == i else "secondary"
+                if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
+                    st.session_state.selected_hole = i
+                    st.rerun()
         
-        with col1:
-            st.write("**前半（1-9ホール）**")
-            # 1行目：1-5ホール
-            hole_cols_1_1 = st.columns(5)
-            for i in range(1, 6):
-                with hole_cols_1_1[i-1]:
-                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                        st.session_state.selected_hole = i
-                        st.rerun()
-            
-            # 2行目：6-9ホール
-            hole_cols_1_2 = st.columns(4)
-            for i in range(6, 10):
-                with hole_cols_1_2[i-6]:
-                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                        st.session_state.selected_hole = i
-                        st.rerun()
-        
-        with col2:
-            st.write("**後半（10-18ホール）**")
-            # 1行目：10-14ホール
-            hole_cols_2_1 = st.columns(5)
-            for i in range(10, 15):
-                with hole_cols_2_1[i-10]:
-                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                        st.session_state.selected_hole = i
-                        st.rerun()
-            
-            # 2行目：15-18ホール
-            hole_cols_2_2 = st.columns(4)
-            for i in range(15, 19):
-                with hole_cols_2_2[i-15]:
-                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                        st.session_state.selected_hole = i
-                        st.rerun()
+        # 2行目：10-18ホール
+        st.write("**後半（10-18ホール）**")
+        hole_cols_2 = st.columns(9)
+        for i in range(10, 19):
+            with hole_cols_2[i-10]:
+                button_type = "primary" if st.session_state.selected_hole == i else "secondary"
+                if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
+                    st.session_state.selected_hole = i
+                    st.rerun()
         
         hole_number = st.session_state.selected_hole
         
