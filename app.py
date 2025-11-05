@@ -305,6 +305,28 @@ def main():
             # メンバーを横に並べて表示
             member_cols = st.columns(len(game_members))
             
+            # 初回読み込み時に元のスコアを保存
+            if f"hole_{hole_number}" not in st.session_state.original_scores:
+                st.session_state.original_scores[f"hole_{hole_number}"] = {}
+                for i, member in enumerate(game_members):
+                    member_index = i + 1
+                    score_id = f"{selected_game['id']}_{member_index}_{hole_number}"
+                    existing_score = next((score for score in existing_scores if score["id"] == score_id), None)
+                    if existing_score:
+                        st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']] = {
+                            'stroke': existing_score["stroke"],
+                            'putt': existing_score["putt"],
+                            'snake': existing_score["snake"],
+                            'olympic': existing_score["olympic"]
+                        }
+                    else:
+                        st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']] = {
+                            'stroke': 4,
+                            'putt': 2,
+                            'snake': 0,
+                            'olympic': ""
+                        }
+            
             # 各メンバーの入力欄を作成
             for i, member in enumerate(game_members):
                 member_index = i + 1
@@ -364,6 +386,14 @@ def main():
                     'olympic': olympic,
                     'existing_score': existing_score
                 }
+                
+                # 変更検知
+                original = st.session_state.original_scores[f"hole_{hole_number}"][member['page_id']]
+                if (stroke != original['stroke'] or 
+                    putt != original['putt'] or 
+                    snake != original['snake'] or 
+                    olympic != original['olympic']):
+                    st.session_state.form_has_changes = True
             
             st.markdown("---")  # 区切り線
             submitted = st.form_submit_button("全メンバーのスコアを保存", use_container_width=True)
@@ -405,6 +435,17 @@ def main():
                 
                 if error_count == 0:
                     st.success(f"ホール{hole_number}の全メンバー（{success_count}名）のスコアを保存しました！")
+                    # 保存成功時にフラグをリセット
+                    st.session_state.form_has_changes = False
+                    # 元のスコアを更新
+                    st.session_state.original_scores[f"hole_{hole_number}"] = {}
+                    for member_page_id, score_data in member_scores.items():
+                        st.session_state.original_scores[f"hole_{hole_number}"][member_page_id] = {
+                            'stroke': score_data['stroke'],
+                            'putt': score_data['putt'],
+                            'snake': score_data['snake'],
+                            'olympic': score_data['olympic']
+                        }
                     st.rerun()
                 else:
                     st.warning(f"ホール{hole_number}のスコア保存完了: 成功{success_count}件、エラー{error_count}件")
