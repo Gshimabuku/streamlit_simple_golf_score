@@ -451,14 +451,14 @@ def main():
             return
         
         # ホール選択（ボタン形式で配置）
-        st.subheader("🏌️ ホール選択")
-        
         # セッション状態でホール番号を管理
         if "selected_hole" not in st.session_state:
             st.session_state.selected_hole = 1
         
+        # ホール選択
+        st.subheader("🏌️ ホール選択")
+        
         # 1行目：1-9ホール
-        st.write("**前半（1-9ホール）**")
         hole_cols_1 = st.columns(9)
         for i in range(1, 10):
             with hole_cols_1[i-1]:
@@ -468,7 +468,6 @@ def main():
                     st.rerun()
         
         # 2行目：10-18ホール
-        st.write("**後半（10-18ホール）**")
         hole_cols_2 = st.columns(9)
         for i in range(10, 19):
             with hole_cols_2[i-10]:
