@@ -285,19 +285,19 @@ def main():
                         key=f"putt_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
+                    olympic = st.selectbox(
+                        "パットゲーム",
+                        olympic_options,
+                        index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0,
+                        key=f"olympic_{member['page_id']}_{hole_number}"  # ホール番号を含める
+                    )
+                    
                     snake = st.number_input(
                         "ミス数",
                         min_value=0,
                         max_value=10,
                         value=existing_score["snake"] if existing_score else 0,
                         key=f"snake_{member['page_id']}_{hole_number}"  # ホール番号を含める
-                    )
-                    
-                    olympic = st.selectbox(
-                        "パットゲーム",
-                        olympic_options,
-                        index=olympic_options.index(existing_score["olympic"]) if existing_score and existing_score["olympic"] in olympic_options else 0,
-                        key=f"olympic_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
                     # 既存データの詳細情報を表示
