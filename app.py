@@ -521,7 +521,7 @@ def main():
                         "ストローク",
                         min_value=-5,
                         max_value=15,
-                        value=existing_score["stroke"] if existing_score else 4,
+                        value=existing_score["stroke"] if existing_score else 0,
                         key=f"stroke_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
