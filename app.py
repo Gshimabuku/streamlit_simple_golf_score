@@ -537,7 +537,7 @@ def main():
                         "パット",
                         min_value=0,
                         max_value=5,
-                        value=existing_score["putt"] if existing_score else 2,
+                        value=existing_score["putt"] if existing_score else 0,
                         key=f"putt_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
