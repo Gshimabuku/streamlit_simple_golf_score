@@ -519,7 +519,7 @@ def main():
                     
                     stroke = st.number_input(
                         "ストローク",
-                        min_value=1,
+                        min_value=-5,
                         max_value=15,
                         value=existing_score["stroke"] if existing_score else 4,
                         key=f"stroke_{member['page_id']}_{hole_number}"  # ホール番号を含める
@@ -551,20 +551,20 @@ def main():
                     snake = st.number_input(
                         "ヘビ",
                         min_value=0,
-                        max_value=10,
+                        max_value=20,
                         value=existing_score["snake"] if existing_score else 0,
                         key=f"snake_{member['page_id']}_{hole_number}"  # ホール番号を含める
                     )
                     
                     # 3の倍数ホール（3、6、9、12、15、18）でsnake_outチェックボックスを表示
                     snake_out = False
-                    if hole_number % 3 == 0:
-                        snake_out = st.checkbox(
-                            "🐍アウト",
-                            value=existing_score["snake_out"] if existing_score else False,
-                            key=f"snake_out_{member['page_id']}_{hole_number}",
-                            help="このホールでヘビアウトになった場合にチェック"
-                        )
+                    # if hole_number % 3 == 0:
+                    snake_out = st.checkbox(
+                        "🐍アウト",
+                        value=existing_score["snake_out"] if existing_score else False,
+                        key=f"snake_out_{member['page_id']}_{hole_number}",
+                        help="このホールでヘビアウトになった場合にチェック"
+                    )
                     
                     # 既存データの詳細情報を表示
                     if existing_score:
