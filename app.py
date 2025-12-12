@@ -1314,6 +1314,84 @@ def main():
                 else:
                     st.info("⚖️ ±0点")
         
+        # 具体的な支払い・受取関係を計算
+        st.subheader("💳 支払い・受取詳細")
+        
+        # プラスとマイナスのメンバーを分ける
+        creditors = [(name, balance) for name, balance in final_balances.items() if balance > 0]  # 受取側
+        debtors = [(name, abs(balance)) for name, balance in final_balances.items() if balance < 0]  # 支払側
+        
+        # 支払い関係を計算
+        transactions = []
+        
+        # 債務者のコピーを作成（計算用）
+        remaining_debts = dict(debtors)
+        remaining_credits = dict(creditors)
+        
+        # 各債権者に対して債務者から支払いを行う
+        for creditor_name, credit_amount in creditors:
+            if credit_amount <= 0:
+                continue
+                
+            for debtor_name, debt_amount in debtors:
+                if debtor_name not in remaining_debts or remaining_debts[debtor_name] <= 0:
+                    continue
+                if creditor_name not in remaining_credits or remaining_credits[creditor_name] <= 0:
+                    break
+                    
+                # 支払い額を決定（債務額と債権額の少ない方）
+                payment = min(remaining_debts[debtor_name], remaining_credits[creditor_name])
+                
+                if payment > 0:
+                    transactions.append({
+                        "支払者": debtor_name,
+                        "受取者": creditor_name,
+                        "金額": payment
+                    })
+                    
+                    # 残額を更新
+                    remaining_debts[debtor_name] -= payment
+                    remaining_credits[creditor_name] -= payment
+        
+        # 支払い関係を表示
+        if transactions:
+            import pandas as pd
+            
+            df_transactions = pd.DataFrame(transactions)
+            st.dataframe(df_transactions, use_container_width=True, hide_index=True)
+            
+            # 各メンバーの詳細な支払い・受取リストを表示
+            st.subheader("👥 メンバー別詳細")
+            
+            member_detail_cols = st.columns(len(game_members))
+            
+            for i, member in enumerate(game_members):
+                member_name = member["name"]
+                
+                with member_detail_cols[i]:
+                    st.markdown(f"**{member_name}**")
+                    
+                    # このメンバーが支払う分
+                    payments = [t for t in transactions if t["支払者"] == member_name]
+                    if payments:
+                        st.markdown("**💸 支払い:**")
+                        for payment in payments:
+                            st.write(f"→ {payment['受取者']}: {payment['金額']:.1f}点")
+                    
+                    # このメンバーが受け取る分
+                    receipts = [t for t in transactions if t["受取者"] == member_name]
+                    if receipts:
+                        st.markdown("**💰 受取り:**")
+                        for receipt in receipts:
+                            st.write(f"← {receipt['支払者']}: {receipt['金額']:.1f}点")
+                    
+                    # 何もない場合
+                    if not payments and not receipts:
+                        st.info("やり取りなし")
+                        
+        else:
+            st.info("すべてのメンバーの収支が0のため、支払いは発生しません。")
+        
 
     
     elif menu == "ユーザー管理":
