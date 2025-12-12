@@ -1314,53 +1314,26 @@ def main():
                 else:
                     st.info("⚖️ ±0点")
         
-        # 各メンバー間の個別関係を計算
+        # 最終収支に基づいた正しいメンバー間関係を計算
         member_relationships = {}
         
-        # 各メンバーに対して他のメンバーとの関係を計算
+        # プラス収支とマイナス収支のメンバーを分ける
+        positive_members = {name: balance for name, balance in final_balances.items() if balance > 0}
+        negative_members = {name: abs(balance) for name, balance in final_balances.items() if balance < 0}
+        
+        # 各メンバーの関係を初期化
         for member in game_members:
-            member_name = member["name"]
-            relationships = {}
-            
-            # 各イベントでこのメンバーが他のメンバーに与える/受ける影響を計算
-            for event in events:
-                event_player = event["player"]
-                event_points = event["points"]
-                event_type = event["type"]
-                
-                if event_type in ["olympic", "special"]:
-                    # プラスイベント
-                    if event_player == member_name:
-                        # このメンバーがイベントを起こした場合、他全員から受け取る
-                        for other_member in game_members:
-                            if other_member["name"] != member_name:
-                                other_name = other_member["name"]
-                                if other_name not in relationships:
-                                    relationships[other_name] = 0
-                                relationships[other_name] += event_points
-                    else:
-                        # 他のメンバーがイベントを起こした場合、そのメンバーに払う
-                        if event_player not in relationships:
-                            relationships[event_player] = 0
-                        relationships[event_player] -= event_points
-                
-                elif event_type == "snake":
-                    # マイナスイベント
-                    if event_player == member_name:
-                        # このメンバーがイベントを起こした場合、他全員に払う
-                        for other_member in game_members:
-                            if other_member["name"] != member_name:
-                                other_name = other_member["name"]
-                                if other_name not in relationships:
-                                    relationships[other_name] = 0
-                                relationships[other_name] -= event_points
-                    else:
-                        # 他のメンバーがイベントを起こした場合、そのメンバーから受け取る
-                        if event_player not in relationships:
-                            relationships[event_player] = 0
-                        relationships[event_player] += event_points
-            
-            member_relationships[member_name] = relationships
+            member_relationships[member["name"]] = {}
+        
+        # プラス収支のメンバーはマイナス収支のメンバーから受け取る
+        for pos_name, pos_amount in positive_members.items():
+            total_negative = sum(negative_members.values())
+            if total_negative > 0:
+                for neg_name, neg_amount in negative_members.items():
+                    # 比例配分で受け取り額を計算
+                    receive_amount = pos_amount * (neg_amount / total_negative)
+                    member_relationships[pos_name][neg_name] = receive_amount
+                    member_relationships[neg_name][pos_name] = -receive_amount
         
         # メンバー間関係を表示（タイトルなし）
         relationship_cols = st.columns(len(game_members))
@@ -1370,12 +1343,11 @@ def main():
             
             with relationship_cols[i]:
                 for other_name, points in relationships.items():
-                    if points > 0:
-                        st.write(f"{other_name}: +{points:.0f}点")
-                    elif points < 0:
-                        st.write(f"{other_name}: {points:.0f}点")
-                    else:
-                        st.write(f"{other_name}: ±0点")
+                    if abs(points) > 0.01:  # 小数点以下の誤差を無視
+                        if points > 0:
+                            st.write(f"{other_name}: +{points:.0f}点")
+                        else:
+                            st.write(f"{other_name}: {points:.0f}点")
         
         # 最終的な支払い・受取（相殺後）を計算
         st.write("---")  # 区切り線
