@@ -1354,9 +1354,9 @@ def main():
             with balance_cols[i]:
                 st.markdown(f"**{member_name}**")
                 if balance > 0:
-                    st.success(f"💰 +{balance:.1f}点")
+                    st.success(f"💰 +{balance:.0f}点")
                 elif balance < 0:
-                    st.error(f"💸 {balance:.1f}点")
+                    st.error(f"💸 {balance:.0f}点")
                 else:
                     st.info("⚖️ ±0点")
         
@@ -1391,9 +1391,9 @@ def main():
                 for other_name, points in relationships.items():
                     if abs(points) > 0.01:  # 小数点以下の誤差を無視
                         if points > 0:
-                            st.write(f"{other_name}: +{points:.0f}点")
+                            st.write(f"{other_name}: +{int(points)}点")
                         else:
-                            st.write(f"{other_name}: {points:.0f}点")
+                            st.write(f"{other_name}: {int(points)}点")
                     elif abs(points) <= 0.01 and points != 0:  # 誤差範囲内の0も±0で表示
                         st.write(f"{other_name}: ±0点")
         
@@ -1457,9 +1457,9 @@ def main():
                 # 2行目：最終収支
                 balance = final_balances[member_name]
                 if balance > 0:
-                    column_data.append(f"+{balance:.0f}点")
+                    column_data.append(f"+{int(balance)}点")
                 elif balance < 0:
-                    column_data.append(f"{balance:.0f}点")
+                    column_data.append(f"{int(balance)}点")
                 else:
                     column_data.append("±0点")
                 
@@ -1468,9 +1468,9 @@ def main():
                 for other_name, points in relationships.items():
                     if abs(points) > 0.01:  # 小数点以下の誤差を無視
                         if points > 0:
-                            column_data.append(f"{other_name}:+{points:.0f}")
+                            column_data.append(f"{other_name}:+{int(points)}")
                         else:
-                            column_data.append(f"{other_name}:{points:.0f}")
+                            column_data.append(f"{other_name}:{int(points)}")
                 
                 # 関係がない他メンバーは±0で表示
                 for other_member in game_members:
