@@ -172,7 +172,7 @@ def main():
     # サイドバーでメニュー選択
     menu = st.sidebar.selectbox(
         "メニューを選択",
-        ["ラウンド記録", "ラウンド編集", "スコア入力", "スコア確認", "ユーザー管理"]
+        ["ラウンド記録", "ラウンド編集", "スコア入力", "スコア確認", "計算シート", "ユーザー管理"]
     )
     
     # サイドバーにラウンド・ホール選択を追加
@@ -1157,6 +1157,213 @@ def main():
                         else:
                             st.write(f"**ホール {hole}**")
                             st.write("未記録")
+    
+    elif menu == "計算シート":
+        st.header("💰 計算シート")
+        
+        # ユーザー一覧を取得
+        users = notion.get_users()
+        
+        if not games:
+            st.warning("記録されたラウンドがありません。")
+            return
+        
+        # サイドバーでラウンドが選択されている場合はそれを使用、そうでなければ選択UIを表示
+        if "selected_game" in st.session_state and st.session_state.selected_game is not None:
+            selected_game = st.session_state.selected_game
+            st.info(f"📌 サイドバーで選択中: {selected_game['place']} - {selected_game['play_date']}")
+        else:
+            # ゲーム選択（サイドバーで選択されていない場合のフォールバック）
+            game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
+            selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()))
+            selected_game = game_options[selected_game_key]
+        
+        # スコアを取得
+        scores = notion.get_scores(selected_game["id"])
+        
+        if not scores:
+            st.warning("このラウンドのスコアが記録されていません。")
+            return
+        
+        # ユーザー辞書を作成
+        user_dict = {user["page_id"]: user for user in users}
+        game_members = [user_dict[member_id] for member_id in selected_game["members"] if member_id in user_dict]
+        
+        if len(game_members) < 2:
+            st.warning("計算には最低2名のメンバーが必要です。")
+            return
+        
+        # スコアデータを整理
+        score_data = {}
+        for member in game_members:
+            score_data[member["name"]] = {
+                "olympic_score": 0,
+                "snake_score": 0,
+                "special_score": 0,
+                "page_id": member["page_id"]
+            }
+        
+        # オリンピック設定値を取得
+        gold_rate = selected_game.get("gold", 4)
+        silver_rate = selected_game.get("silver", 3)
+        bronze_rate = selected_game.get("bronze", 2)
+        iron_rate = selected_game.get("iron", 1)
+        diamond_rate = selected_game.get("diamond", 5)
+        
+        # 各メンバーのスコアを計算
+        for score in scores:
+            user_name = next((user["name"] for user in users if user["page_id"] == score["user_relation"]), None)
+            if user_name and user_name in score_data:
+                # オリンピックスコア
+                olympic = score.get("olympic", "")
+                if olympic == "金":
+                    score_data[user_name]["olympic_score"] += gold_rate
+                elif olympic == "銀":
+                    score_data[user_name]["olympic_score"] += silver_rate
+                elif olympic == "銅":
+                    score_data[user_name]["olympic_score"] += bronze_rate
+                elif olympic == "鉄":
+                    score_data[user_name]["olympic_score"] += iron_rate
+                elif olympic == "ダイヤモンド":
+                    score_data[user_name]["olympic_score"] += diamond_rate
+                
+                # ヘビスコア
+                snake = score.get("snake", 0)
+                score_data[user_name]["snake_score"] += snake
+                
+                # スペシャルスコア（バーディー以上）
+                par_diff = score.get("stroke", 0)  # パー±
+                if par_diff <= -1:  # バーディー以上
+                    if par_diff == -1:  # バーディー
+                        score_data[user_name]["special_score"] += 1
+                    elif par_diff == -2:  # イーグル
+                        score_data[user_name]["special_score"] += 3
+                    elif par_diff <= -3:  # アルバトロス
+                        score_data[user_name]["special_score"] += 5
+        
+        # 各メンバーの合計スコアを計算
+        st.subheader("📊 スコア詳細")
+        
+        member_totals = {}
+        detail_cols = st.columns(len(game_members))
+        
+        for i, member in enumerate(game_members):
+            member_name = member["name"]
+            data = score_data[member_name]
+            
+            # 合計スコア = オリンピック + スペシャル - ヘビ
+            total_score = data["olympic_score"] + data["special_score"] - data["snake_score"]
+            member_totals[member_name] = total_score
+            
+            with detail_cols[i]:
+                st.markdown(f"**{member_name}**")
+                st.metric("🏅 オリンピック", f"+{data['olympic_score']}")
+                st.metric("🏆 スペシャル", f"+{data['special_score']}")
+                st.metric("🐍 ヘビ", f"-{data['snake_score']}")
+                st.metric("📈 合計", f"{total_score:+d}" if total_score != 0 else "±0")
+        
+        # 収支計算
+        st.subheader("💸 収支計算")
+        
+        # メンバー数
+        num_members = len(game_members)
+        other_members = num_members - 1
+        
+        # 各メンバーの最終収支を計算
+        final_balances = {}
+        
+        for member_name in member_totals:
+            total_score = member_totals[member_name]
+            
+            # +スコアは他のメンバーから均等にもらう
+            # -スコアは他のメンバーに均等に払う
+            plus_score = max(0, total_score)
+            minus_score = abs(min(0, total_score))
+            
+            # 他のメンバーからもらう分 - 他のメンバーに払う分
+            received = sum(max(0, member_totals[other]) / other_members for other in member_totals if other != member_name)
+            paid = sum(abs(min(0, member_totals[other])) / other_members for other in member_totals if other != member_name)
+            
+            final_balance = plus_score + received - minus_score - paid
+            final_balances[member_name] = final_balance
+        
+        # 収支表示
+        balance_cols = st.columns(len(game_members))
+        for i, member in enumerate(game_members):
+            member_name = member["name"]
+            balance = final_balances[member_name]
+            
+            with balance_cols[i]:
+                st.markdown(f"**{member_name}**")
+                if balance > 0:
+                    st.success(f"💰 +{balance:.1f}点")
+                elif balance < 0:
+                    st.error(f"💸 {balance:.1f}点")
+                else:
+                    st.info("⚖️ ±0点")
+        
+        # 詳細な収支テーブル
+        st.subheader("📋 詳細収支")
+        
+        # 収支マトリックス作成
+        import pandas as pd
+        
+        matrix_data = []
+        for member_name in member_totals:
+            total_score = member_totals[member_name]
+            
+            # この人が他の人に与える影響
+            if total_score > 0:  # +スコアの場合、他の人から均等にもらう
+                amount_per_person = total_score / other_members
+                row = [member_name]
+                for other_name in member_totals:
+                    if other_name == member_name:
+                        row.append("-")
+                    else:
+                        row.append(f"+{amount_per_person:.1f}")
+                matrix_data.append(row)
+            elif total_score < 0:  # -スコアの場合、他の人に均等に払う
+                amount_per_person = abs(total_score) / other_members
+                row = [member_name]
+                for other_name in member_totals:
+                    if other_name == member_name:
+                        row.append("-")
+                    else:
+                        row.append(f"-{amount_per_person:.1f}")
+                matrix_data.append(row)
+        
+        if matrix_data:
+            columns = ["支払者/受取者"] + list(member_totals.keys())
+            df_matrix = pd.DataFrame(matrix_data, columns=columns)
+            st.dataframe(df_matrix, use_container_width=True, hide_index=True)
+            
+            st.caption("正の値：受け取る金額 / 負の値：支払う金額")
+        
+        # 最終順位
+        st.subheader("🏆 最終順位")
+        
+        sorted_members = sorted(final_balances.items(), key=lambda x: x[1], reverse=True)
+        
+        rank_cols = st.columns(len(sorted_members))
+        for i, (member_name, balance) in enumerate(sorted_members):
+            with rank_cols[i]:
+                rank = i + 1
+                if rank == 1:
+                    st.markdown(f"### 🥇 {rank}位")
+                elif rank == 2:
+                    st.markdown(f"### 🥈 {rank}位")
+                elif rank == 3:
+                    st.markdown(f"### 🥉 {rank}位")
+                else:
+                    st.markdown(f"### {rank}位")
+                
+                st.markdown(f"**{member_name}**")
+                if balance > 0:
+                    st.success(f"💰 +{balance:.1f}点")
+                elif balance < 0:
+                    st.error(f"💸 {balance:.1f}点")
+                else:
+                    st.info("⚖️ ±0点")
     
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
