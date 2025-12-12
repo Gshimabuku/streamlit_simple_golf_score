@@ -731,6 +731,61 @@ def main():
                     st.rerun()
                 else:
                     st.warning(f"ホール{hole_number}のスコア保存完了: 成功{success_count}件、エラー{error_count}件")
+            
+            # 次のホールボタンが押された場合の処理
+            if hole_number < 18 and 'next_hole_clicked' in locals() and next_hole_clicked:
+                # 現在のスコアを保存してから次のホールへ移動
+                if member_scores:
+                    # 3の倍数ホールでのsnake_outバリデーション
+                    if hole_number % 3 == 0:
+                        snake_out_count = sum(1 for score_data in member_scores.values() if score_data['snake_out'])
+                        if snake_out_count > 1:
+                            st.error("🐍アウトは1人だけ選択してから次のホールへ進んでください。")
+                            st.stop()
+                    
+                    # スコアを保存
+                    success_count = 0
+                    error_count = 0
+                    
+                    for score_data in member_scores.values():
+                        properties = {
+                            "id": {"title": [{"text": {"content": score_data['id']}}]},
+                            "user": {"relation": [{"id": score_data['member']['page_id']}]},
+                            "hole": {"number": hole_number},
+                            "stroke": {"number": score_data['stroke']},
+                            "putt": {"number": score_data['putt']},
+                            "snake": {"number": score_data['snake']}
+                        }
+                        
+                        # 3の倍数ホールの場合のみsnake_outを追加
+                        if hole_number % 3 == 0:
+                            properties["snake_out"] = {"checkbox": score_data['snake_out']}
+                        
+                        if score_data['olympic']:
+                            properties["olympic"] = {"select": {"name": score_data['olympic']}}
+                        
+                        if score_data['existing_score']:
+                            result = notion.update_page(score_data['existing_score']['page_id'], properties)
+                        else:
+                            result = notion.create_page(SCORE_DB_ID, properties)
+                        
+                        if result:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                    
+                    # 保存が成功した場合のみ次のホールへ移動
+                    if error_count == 0:
+                        st.session_state.selected_hole = hole_number + 1
+                        st.success(f"ホール{hole_number}のスコアを保存して、ホール{hole_number + 1}に移動しました！")
+                        st.rerun()
+                    else:
+                        st.warning(f"エラーが発生しました: 成功{success_count}件、エラー{error_count}件")
+                else:
+                    # スコア入力なしで次のホールへ
+                    st.session_state.selected_hole = hole_number + 1
+                    st.info(f"ホール{hole_number + 1}に移動しました。")
+                    st.rerun()
     
     elif menu == "スコア確認":
         st.header("スコア確認")
