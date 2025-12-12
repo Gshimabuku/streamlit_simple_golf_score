@@ -245,7 +245,7 @@ def main():
             with col1:
                 play_date = st.date_input("プレイ日", value=date.today())
                 place = st.text_input("プレイ場所（コース名）", placeholder="例：〇〇ゴルフクラブ")
-                total_par = st.number_input("合計パー", min_value=60, max_value=80, value=72, help="18ホール合計パー数")
+                total_par = st.number_input("合計パー", min_value=20, max_value=75, value=72, help="18ホール合計パー数")
             
             with col2:
                 st.write("メンバー選択（最大4名）")
