@@ -82,6 +82,7 @@ class NotionClient:
                 game_id = page["properties"]["id"]["title"][0]["text"]["content"] if page["properties"]["id"]["title"] else ""
                 play_date = page["properties"]["play_date"]["date"]["start"] if page["properties"]["play_date"]["date"] else ""
                 place = page["properties"]["place"]["rich_text"][0]["text"]["content"] if page["properties"]["place"]["rich_text"] else ""
+                par = page["properties"]["par"]["number"] if "par" in page["properties"] and page["properties"]["par"]["number"] else 72
                 
                 # レート情報を取得
                 gold = page["properties"]["gold"]["number"] if "gold" in page["properties"] and page["properties"]["gold"]["number"] else 4
@@ -107,6 +108,7 @@ class NotionClient:
                     "id": game_id,
                     "play_date": play_date,
                     "place": place,
+                    "par": par,
                     "members": members,
                     "member_ids": member_names,  # 個別のメンバーID情報を追加
                     "gold": gold,
@@ -243,6 +245,7 @@ def main():
             with col1:
                 play_date = st.date_input("プレイ日", value=date.today())
                 place = st.text_input("プレイ場所（コース名）", placeholder="例：〇〇ゴルフクラブ")
+                total_par = st.number_input("合計パー", min_value=60, max_value=80, value=72, help="18ホール合計パー数")
             
             with col2:
                 st.write("メンバー選択（最大4名）")
@@ -287,6 +290,7 @@ def main():
                         "id": {"title": [{"text": {"content": game_id}}]},
                         "play_date": {"date": {"start": play_date.isoformat()}},
                         "place": {"rich_text": [{"text": {"content": place}}]},
+                        "par": {"number": total_par},
                         "gold": {"number": gold_rate},
                         "silver": {"number": silver_rate},
                         "bronze": {"number": bronze_rate},
@@ -364,6 +368,14 @@ def main():
                         "ゴルフ場名",
                         value=selected_game.get('place', '')
                     )
+                
+                edit_par = st.number_input(
+                    "合計パー",
+                    min_value=60,
+                    max_value=80,
+                    value=selected_game.get('par', 72),
+                    help="18ホール合計パー数"
+                )
                 
                 # メンバー選択（最大4人）
                 st.subheader("メンバー選択")
@@ -472,6 +484,7 @@ def main():
                             "play_date": {"date": {"start": edit_date.strftime("%Y-%m-%d")}},
                             "place": {"rich_text": [{"text": {"content": edit_place}}]},
                             "id": {"title": [{"text": {"content": edit_game_id}}]},
+                            "par": {"number": edit_par},
                             "gold": {"number": edit_gold_rate},
                             "silver": {"number": edit_silver_rate},
                             "bronze": {"number": edit_bronze_rate},
@@ -586,13 +599,16 @@ def main():
                     # 既存データがある場合の表示
                     data_status = "📊" if existing_score else "🆕"
                     st.markdown(f"### {member['name']} {data_status}")
+                    st.caption(f"ホール{hole_number}")
                     
-                    stroke = st.number_input(
-                        "ストローク",
-                        min_value=-5,
-                        max_value=15,
+                    # パー±での入力（既存データから取得またはデフォルト0）
+                    par_relative = st.number_input(
+                        f"パー±",
+                        min_value=-3,
+                        max_value=20,
                         value=existing_score["stroke"] if existing_score else 0,
-                        key=f"stroke_{member['page_id']}_{hole_number}"  # ホール番号を含める
+                        key=f"stroke_{member['page_id']}_{hole_number}",  # ホール番号を含める
+                        help="パーからの打数差を入力（-3～+20）"
                     )
                     
                     # バーディーチェックボックスを追加
@@ -646,7 +662,7 @@ def main():
                     'member': member,
                     'member_index': member_index,
                     'score_id': score_id,
-                    'stroke': stroke,
+                    'stroke': par_relative,  # パー±の値をそのまま保存
                     'putt': putt,
                     'snake': snake,
                     'olympic': olympic,
@@ -769,6 +785,9 @@ def main():
         header = ["名前"] + [str(i) for i in range(1, 10)] + ["IN"] + [str(i) for i in range(10, 19)] + ["OUT", "計"]
         table_data.append(header)
         
+        # 合計パー数を取得
+        total_par = selected_game.get('par', 72)
+        
         # 各メンバーのスコア行
         for member in game_members:
             member_name = member["name"]
@@ -781,27 +800,77 @@ def main():
             # 前半（1-9ホール）
             for hole in range(1, 10):
                 if hole in score_data[member_name]:
-                    stroke = score_data[member_name][hole]["stroke"]
-                    stroke_row.append(str(stroke))
-                    in_total += stroke
+                    par_diff = score_data[member_name][hole]["stroke"]  # データベースにはパー±が保存されている
+                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "E")
+                    in_total += par_diff
                 else:
                     stroke_row.append("-")
             
-            stroke_row.append(str(in_total) if in_total > 0 else "-")
+            # IN合計をパー±で表示
+            if in_total != 0:
+                stroke_row.append(f"{in_total:+d}")
+            else:
+                stroke_row.append("E" if any(hole in score_data[member_name] for hole in range(1, 10)) else "-")
             
             # 後半（10-18ホール）
             for hole in range(10, 19):
                 if hole in score_data[member_name]:
-                    stroke = score_data[member_name][hole]["stroke"]
-                    stroke_row.append(str(stroke))
-                    out_total += stroke
+                    par_diff = score_data[member_name][hole]["stroke"]  # データベースにはパー±が保存されている
+                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "E")
+                    out_total += par_diff
                 else:
                     stroke_row.append("-")
             
-            stroke_row.append(str(out_total) if out_total > 0 else "-")
-            stroke_row.append(str(in_total + out_total) if (in_total > 0 and out_total > 0) else "-")
+            # OUT合計をパー±で表示
+            if out_total != 0:
+                stroke_row.append(f"{out_total:+d}")
+            else:
+                stroke_row.append("E" if any(hole in score_data[member_name] for hole in range(10, 19)) else "-")
+            
+            # 総合計をパー±で表示
+            total_diff = in_total + out_total
+            if total_diff != 0:
+                stroke_row.append(f"{total_diff:+d}")
+            else:
+                has_scores = any(hole in score_data[member_name] for hole in range(1, 19))
+                stroke_row.append("E" if has_scores else "-")
             
             table_data.append(stroke_row)
+            
+            # 実際の打数行を追加（合計パー + パー±）
+            actual_score_row = [""]
+            in_actual_total = 0
+            out_actual_total = 0
+            
+            # 前半の実際の打数
+            for hole in range(1, 10):
+                if hole in score_data[member_name]:
+                    # パー±から実際の打数を算出（各ホールのパーは合計/18で仮定）
+                    par_diff = score_data[member_name][hole]["stroke"]
+                    estimated_hole_par = total_par / 18  # 各ホールの平均パー
+                    actual_stroke = int(estimated_hole_par + par_diff)
+                    actual_score_row.append(str(actual_stroke))
+                    in_actual_total += actual_stroke
+                else:
+                    actual_score_row.append("-")
+            
+            actual_score_row.append(str(in_actual_total) if in_actual_total > 0 else "-")
+            
+            # 後半の実際の打数
+            for hole in range(10, 19):
+                if hole in score_data[member_name]:
+                    par_diff = score_data[member_name][hole]["stroke"]
+                    estimated_hole_par = total_par / 18
+                    actual_stroke = int(estimated_hole_par + par_diff)
+                    actual_score_row.append(str(actual_stroke))
+                    out_actual_total += actual_stroke
+                else:
+                    actual_score_row.append("-")
+            
+            actual_score_row.append(str(out_actual_total) if out_actual_total > 0 else "-")
+            actual_score_row.append(str(in_actual_total + out_actual_total) if (in_actual_total > 0 and out_actual_total > 0) else "-")
+            
+            table_data.append(actual_score_row)
             
             # パット行
             putt_row = [""]  # 名前欄は空白
@@ -1078,8 +1147,15 @@ def main():
                     with detail_cols[col_index]:
                         if hole in score_data[member_name]:
                             hole_data = score_data[member_name][hole]
+                            par_diff = hole_data['stroke']  # データベースにはパー±が保存されている
+                            
                             st.write(f"**ホール {hole}**")
-                            st.write(f"ストローク: {hole_data['stroke']}")
+                            if par_diff > 0:
+                                st.write(f"パー: +{par_diff}")
+                            elif par_diff < 0:
+                                st.write(f"パー: {par_diff}")
+                            else:
+                                st.write("パー: E")
                             st.write(f"パット: {hole_data['putt']}")
                             if hole_data['olympic']:
                                 st.write(f"🏅 {hole_data['olympic']}")
