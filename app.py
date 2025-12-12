@@ -578,12 +578,16 @@ def main():
             member_scores = {}
             olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
             
-            # ヘッダーと保存ボタンを同じ行に配置
-            header_col, button_col = st.columns([3, 1])
+            # ヘッダーとボタンを同じ行に配置
+            header_col, save_col, next_col = st.columns([2, 1, 1])
             with header_col:
                 st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
-            with button_col:
+            with save_col:
                 submitted = st.form_submit_button("保存", use_container_width=True, type="primary")
+            with next_col:
+                # 次のホールへのボタン（18ホール未満の場合のみ表示）
+                if hole_number < 18:
+                    next_hole_clicked = st.form_submit_button("次のホール", use_container_width=True, type="secondary")
             
             # メンバーを横に並べて表示
             member_cols = st.columns(len(game_members))
