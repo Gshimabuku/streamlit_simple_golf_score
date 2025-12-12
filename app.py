@@ -611,13 +611,19 @@ def main():
                         help="パーからの打数差を入力（-3～+20）"
                     )
                     
-                    # バーディーチェックボックスを追加
-                    birdie = st.checkbox(
-                        "🦅 バーディー",
-                        value=existing_score["birdie"] if existing_score else False,
-                        key=f"birdie_{member['page_id']}_{hole_number}",
-                        help="バーディーの場合にチェック"
-                    )
+                    # スコア表示
+                    if par_relative == -3:
+                        st.caption("🦈 アルバトロス!")
+                    elif par_relative == -2:
+                        st.caption("🦅 イーグル!")
+                    elif par_relative == -1:
+                        st.caption("🐦 バーディー!")
+                    elif par_relative == 0:
+                        st.caption("⭕ パー")
+                    elif par_relative == 1:
+                        st.caption("➕ ボギー")
+                    elif par_relative >= 2:
+                        st.caption(f"➕➕ ダブルボギー以上 (+{par_relative})")
                     
                     putt = st.number_input(
                         "パット",
@@ -667,7 +673,6 @@ def main():
                     'snake': snake,
                     'olympic': olympic,
                     'snake_out': snake_out,
-                    'birdie': birdie,
                     'existing_score': existing_score
                 }
             
@@ -692,8 +697,7 @@ def main():
                         "hole": {"number": hole_number},
                         "stroke": {"number": score_data['stroke']},
                         "putt": {"number": score_data['putt']},
-                        "snake": {"number": score_data['snake']},
-                        "birdie": {"checkbox": score_data['birdie']}
+                        "snake": {"number": score_data['snake']}
                     }
                     
                     # 3の倍数ホールの場合のみsnake_outを追加
@@ -1106,33 +1110,50 @@ def main():
         # オリンピック設定値を表示
         st.caption(f"設定値: 金={gold_rate}点, 銀={silver_rate}点, 銅={bronze_rate}点, 鉄={iron_rate}点, ダイヤモンド={diamond_rate}点")
         
-        # バーディースコア確認シートを追加
-        st.subheader("🦅 バーディースコア")
+        # スペシャルスコア確認シートを追加
+        st.subheader("🏆 スペシャルスコア")
         
-        # 各メンバーのバーディー取得数を計算
-        member_birdie_totals = {}
+        # 各メンバーのスペシャルスコア取得数を計算
+        member_special_scores = {}
         
         for member in game_members:
             member_name = member["name"]
-            birdie_count = 0
+            albatross_count = 0  # -3
+            eagle_count = 0      # -2
+            birdie_count = 0     # -1
             
-            # 全18ホールのバーディーをカウント
+            # 全18ホールのスペシャルスコアをカウント
             for hole in range(1, 19):
-                if hole in score_data[member_name] and score_data[member_name][hole].get("birdie", False):
-                    birdie_count += 1
+                if hole in score_data[member_name]:
+                    par_diff = score_data[member_name][hole]["stroke"]
+                    if par_diff == -3:
+                        albatross_count += 1
+                    elif par_diff == -2:
+                        eagle_count += 1
+                    elif par_diff == -1:
+                        birdie_count += 1
             
-            member_birdie_totals[member_name] = birdie_count
+            member_special_scores[member_name] = {
+                "albatross": albatross_count,
+                "eagle": eagle_count,
+                "birdie": birdie_count
+            }
         
         # 結果を表示
-        birdie_total_cols = st.columns(len(game_members))
+        special_score_cols = st.columns(len(game_members))
         for i, member in enumerate(game_members):
             member_name = member["name"]
-            with birdie_total_cols[i]:
-                st.metric(
-                    member_name,
-                    f"{member_birdie_totals[member_name]}",
-                    help="バーディー取得数の合計"
-                )
+            scores = member_special_scores[member_name]
+            with special_score_cols[i]:
+                st.markdown(f"**{member_name}**")
+                if scores["albatross"] > 0:
+                    st.metric("🦈 アルバトロス", scores["albatross"])
+                if scores["eagle"] > 0:
+                    st.metric("🦅 イーグル", scores["eagle"])
+                if scores["birdie"] > 0:
+                    st.metric("🐦 バーディー", scores["birdie"])
+                if scores["albatross"] == 0 and scores["eagle"] == 0 and scores["birdie"] == 0:
+                    st.caption("スペシャルスコアなし")
         
         # 詳細情報（オリンピック、ヘビ）の表示
         st.subheader("🏅 詳細情報")
