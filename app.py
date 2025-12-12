@@ -1210,6 +1210,9 @@ def main():
         iron_rate = selected_game.get("iron", 1)
         diamond_rate = selected_game.get("diamond", 5)
         
+        # 各イベントを記録（個別計算のため）
+        events = []  # {"type": "olympic/special/snake", "player": "name", "points": int}
+        
         # 各メンバーのスコアを計算
         for score in scores:
             user_name = next((user["name"] for user in users if user["page_id"] == score["user_relation"]), None)
@@ -1218,51 +1221,55 @@ def main():
                 olympic = score.get("olympic", "")
                 if olympic == "金":
                     score_data[user_name]["olympic_score"] += gold_rate
+                    events.append({"type": "olympic", "player": user_name, "points": gold_rate})
                 elif olympic == "銀":
                     score_data[user_name]["olympic_score"] += silver_rate
+                    events.append({"type": "olympic", "player": user_name, "points": silver_rate})
                 elif olympic == "銅":
                     score_data[user_name]["olympic_score"] += bronze_rate
+                    events.append({"type": "olympic", "player": user_name, "points": bronze_rate})
                 elif olympic == "鉄":
                     score_data[user_name]["olympic_score"] += iron_rate
+                    events.append({"type": "olympic", "player": user_name, "points": iron_rate})
                 elif olympic == "ダイヤモンド":
                     score_data[user_name]["olympic_score"] += diamond_rate
+                    events.append({"type": "olympic", "player": user_name, "points": diamond_rate})
                 
                 # ヘビスコア
                 snake = score.get("snake", 0)
-                score_data[user_name]["snake_score"] += snake
+                if snake > 0:
+                    score_data[user_name]["snake_score"] += snake
+                    events.append({"type": "snake", "player": user_name, "points": snake})
                 
                 # スペシャルスコア（バーディー以上）
                 par_diff = score.get("stroke", 0)  # パー±
                 if par_diff <= -1:  # バーディー以上
                     if par_diff == -1:  # バーディー
                         score_data[user_name]["special_score"] += 1
+                        events.append({"type": "special", "player": user_name, "points": 1})
                     elif par_diff == -2:  # イーグル
                         score_data[user_name]["special_score"] += 3
+                        events.append({"type": "special", "player": user_name, "points": 3})
                     elif par_diff <= -3:  # アルバトロス
                         score_data[user_name]["special_score"] += 5
+                        events.append({"type": "special", "player": user_name, "points": 5})
         
         # 各メンバーの合計スコアを計算
         st.subheader("📊 スコア詳細")
         
-        member_totals = {}
         detail_cols = st.columns(len(game_members))
         
         for i, member in enumerate(game_members):
             member_name = member["name"]
             data = score_data[member_name]
             
-            # 合計スコア = オリンピック + スペシャル - ヘビ
-            total_score = data["olympic_score"] + data["special_score"] - data["snake_score"]
-            member_totals[member_name] = total_score
-            
             with detail_cols[i]:
                 st.markdown(f"**{member_name}**")
                 st.metric("🏅 オリンピック", f"+{data['olympic_score']}")
                 st.metric("🏆 スペシャル", f"+{data['special_score']}")
                 st.metric("🐍 ヘビ", f"-{data['snake_score']}")
-                st.metric("📈 合計", f"{total_score:+d}" if total_score != 0 else "±0")
         
-        # 収支計算
+        # 収支計算（イベントベース）
         st.subheader("💸 収支計算")
         
         # メンバー数
@@ -1270,22 +1277,27 @@ def main():
         other_members = num_members - 1
         
         # 各メンバーの最終収支を計算
-        final_balances = {}
+        final_balances = {member["name"]: 0 for member in game_members}
         
-        for member_name in member_totals:
-            total_score = member_totals[member_name]
+        # 各イベントごとに収支を計算
+        for event in events:
+            event_player = event["player"]
+            event_points = event["points"]
+            event_type = event["type"]
             
-            # +スコアは他のメンバーから均等にもらう
-            # -スコアは他のメンバーに均等に払う
-            plus_score = max(0, total_score)
-            minus_score = abs(min(0, total_score))
+            if event_type in ["olympic", "special"]:
+                # プラスイベント：該当プレイヤーは他全員からポイントをもらう
+                final_balances[event_player] += event_points * other_members
+                for member_name in final_balances:
+                    if member_name != event_player:
+                        final_balances[member_name] -= event_points
             
-            # 他のメンバーからもらう分 - 他のメンバーに払う分
-            received = sum(max(0, member_totals[other]) / other_members for other in member_totals if other != member_name)
-            paid = sum(abs(min(0, member_totals[other])) / other_members for other in member_totals if other != member_name)
-            
-            final_balance = plus_score + received - minus_score - paid
-            final_balances[member_name] = final_balance
+            elif event_type == "snake":
+                # マイナスイベント：該当プレイヤーは他全員にポイントを払う
+                final_balances[event_player] -= event_points * other_members
+                for member_name in final_balances:
+                    if member_name != event_player:
+                        final_balances[member_name] += event_points
         
         # 収支表示
         balance_cols = st.columns(len(game_members))
@@ -1302,42 +1314,36 @@ def main():
                 else:
                     st.info("⚖️ ±0点")
         
-        # 詳細な収支テーブル
-        st.subheader("📋 詳細収支")
+        # イベント詳細表示
+        st.subheader("📋 イベント詳細")
         
-        # 収支マトリックス作成
-        import pandas as pd
-        
-        matrix_data = []
-        for member_name in member_totals:
-            total_score = member_totals[member_name]
+        if events:
+            import pandas as pd
             
-            # この人が他の人に与える影響
-            if total_score > 0:  # +スコアの場合、他の人から均等にもらう
-                amount_per_person = total_score / other_members
-                row = [member_name]
-                for other_name in member_totals:
-                    if other_name == member_name:
-                        row.append("-")
-                    else:
-                        row.append(f"+{amount_per_person:.1f}")
-                matrix_data.append(row)
-            elif total_score < 0:  # -スコアの場合、他の人に均等に払う
-                amount_per_person = abs(total_score) / other_members
-                row = [member_name]
-                for other_name in member_totals:
-                    if other_name == member_name:
-                        row.append("-")
-                    else:
-                        row.append(f"-{amount_per_person:.1f}")
-                matrix_data.append(row)
-        
-        if matrix_data:
-            columns = ["支払者/受取者"] + list(member_totals.keys())
-            df_matrix = pd.DataFrame(matrix_data, columns=columns)
-            st.dataframe(df_matrix, use_container_width=True, hide_index=True)
+            event_details = []
+            for event in events:
+                event_type_name = {
+                    "olympic": "🏅 オリンピック",
+                    "special": "🏆 スペシャル",
+                    "snake": "🐍 ヘビ"
+                }[event["type"]]
+                
+                if event["type"] in ["olympic", "special"]:
+                    description = f"{event['player']} が {event_type_name} {event['points']}点獲得 → 他{other_members}名から各{event['points']}点受取"
+                else:  # snake
+                    description = f"{event['player']} が {event_type_name} {event['points']}点 → 他{other_members}名に各{event['points']}点支払"
+                
+                event_details.append({
+                    "イベント": event_type_name,
+                    "プレイヤー": event["player"],
+                    "ポイント": event["points"],
+                    "詳細": description
+                })
             
-            st.caption("正の値：受け取る金額 / 負の値：支払う金額")
+            df_events = pd.DataFrame(event_details)
+            st.dataframe(df_events, use_container_width=True, hide_index=True)
+        else:
+            st.info("スコアイベントがありません。")
         
         # 最終順位
         st.subheader("🏆 最終順位")
