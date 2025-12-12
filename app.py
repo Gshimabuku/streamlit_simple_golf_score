@@ -864,7 +864,7 @@ def main():
             for hole in range(1, 10):
                 if hole in score_data[member_name]:
                     par_diff = score_data[member_name][hole]["stroke"]  # データベースにはパー±が保存されている
-                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "E")
+                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "0")
                     in_total += par_diff
                 else:
                     stroke_row.append("-")
@@ -873,13 +873,13 @@ def main():
             if in_total != 0:
                 stroke_row.append(f"{in_total:+d}")
             else:
-                stroke_row.append("E" if any(hole in score_data[member_name] for hole in range(1, 10)) else "-")
+                stroke_row.append("0" if any(hole in score_data[member_name] for hole in range(1, 10)) else "-")
             
             # 後半（10-18ホール）
             for hole in range(10, 19):
                 if hole in score_data[member_name]:
                     par_diff = score_data[member_name][hole]["stroke"]  # データベースにはパー±が保存されている
-                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "E")
+                    stroke_row.append(f"{par_diff:+d}" if par_diff != 0 else "0")
                     out_total += par_diff
                 else:
                     stroke_row.append("-")
@@ -888,7 +888,7 @@ def main():
             if out_total != 0:
                 stroke_row.append(f"{out_total:+d}")
             else:
-                stroke_row.append("E" if any(hole in score_data[member_name] for hole in range(10, 19)) else "-")
+                stroke_row.append("0" if any(hole in score_data[member_name] for hole in range(10, 19)) else "-")
             
             # 総合計を「実際スコア(パー±)」形式で表示
             total_diff = in_total + out_total
@@ -897,7 +897,7 @@ def main():
                 if total_diff != 0:
                     stroke_row.append(f"{total_actual_score}({total_diff:+d})")
                 else:
-                    stroke_row.append(f"{total_actual_score}(E)")
+                    stroke_row.append(f"{total_actual_score}(0)")
             else:
                 stroke_row.append("-")
             
