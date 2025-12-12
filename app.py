@@ -1314,62 +1314,7 @@ def main():
                 else:
                     st.info("⚖️ ±0点")
         
-        # イベント詳細表示
-        st.subheader("📋 イベント詳細")
-        
-        if events:
-            import pandas as pd
-            
-            event_details = []
-            for event in events:
-                event_type_name = {
-                    "olympic": "🏅 オリンピック",
-                    "special": "🏆 スペシャル",
-                    "snake": "🐍 ヘビ"
-                }[event["type"]]
-                
-                if event["type"] in ["olympic", "special"]:
-                    description = f"{event['player']} が {event_type_name} {event['points']}点獲得 → 他{other_members}名から各{event['points']}点受取"
-                else:  # snake
-                    description = f"{event['player']} が {event_type_name} {event['points']}点 → 他{other_members}名に各{event['points']}点支払"
-                
-                event_details.append({
-                    "イベント": event_type_name,
-                    "プレイヤー": event["player"],
-                    "ポイント": event["points"],
-                    "詳細": description
-                })
-            
-            df_events = pd.DataFrame(event_details)
-            st.dataframe(df_events, use_container_width=True, hide_index=True)
-        else:
-            st.info("スコアイベントがありません。")
-        
-        # 最終順位
-        st.subheader("🏆 最終順位")
-        
-        sorted_members = sorted(final_balances.items(), key=lambda x: x[1], reverse=True)
-        
-        rank_cols = st.columns(len(sorted_members))
-        for i, (member_name, balance) in enumerate(sorted_members):
-            with rank_cols[i]:
-                rank = i + 1
-                if rank == 1:
-                    st.markdown(f"### 🥇 {rank}位")
-                elif rank == 2:
-                    st.markdown(f"### 🥈 {rank}位")
-                elif rank == 3:
-                    st.markdown(f"### 🥉 {rank}位")
-                else:
-                    st.markdown(f"### {rank}位")
-                
-                st.markdown(f"**{member_name}**")
-                if balance > 0:
-                    st.success(f"💰 +{balance:.1f}点")
-                elif balance < 0:
-                    st.error(f"💸 {balance:.1f}点")
-                else:
-                    st.info("⚖️ ±0点")
+
     
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
