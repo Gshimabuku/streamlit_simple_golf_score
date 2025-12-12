@@ -173,6 +173,62 @@ def main():
         ["ラウンド記録", "ラウンド編集", "スコア入力", "スコア確認", "ユーザー管理"]
     )
     
+    # サイドバーにラウンド・ホール選択を追加
+    st.sidebar.divider()
+    
+    # ラウンド選択（全メニュー共通）
+    games = notion.get_games()
+    if games:
+        st.sidebar.subheader("🏌️ ラウンド選択")
+        game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
+        
+        # セッション状態でラウンドを管理
+        if "selected_game" not in st.session_state:
+            st.session_state.selected_game = None
+        
+        selected_game_key = st.sidebar.selectbox(
+            "ラウンドを選択",
+            ["選択なし"] + list(game_options.keys()),
+            index=0 if st.session_state.selected_game is None else (
+                list(game_options.keys()).index(st.session_state.selected_game_key) + 1 
+                if "selected_game_key" in st.session_state and st.session_state.selected_game_key in game_options 
+                else 0
+            ),
+            key="sidebar_game_select"
+        )
+        
+        if selected_game_key != "選択なし":
+            st.session_state.selected_game = game_options[selected_game_key]
+            st.session_state.selected_game_key = selected_game_key
+        else:
+            st.session_state.selected_game = None
+            st.session_state.selected_game_key = None
+    
+    # ホール選択（ラウンドが選択されている場合のみ表示）
+    if "selected_game" in st.session_state and st.session_state.selected_game is not None:
+        st.sidebar.subheader("🎯 ホール選択")
+        
+        # セッション状態でホール番号を管理
+        if "selected_hole" not in st.session_state:
+            st.session_state.selected_hole = 1
+        
+        # ホール選択（1-18のドロップダウン）
+        hole_options = list(range(1, 19))
+        selected_hole = st.sidebar.selectbox(
+            "ホール番号",
+            hole_options,
+            index=st.session_state.selected_hole - 1,
+            key="sidebar_hole_select"
+        )
+        
+        if selected_hole != st.session_state.selected_hole:
+            st.session_state.selected_hole = selected_hole
+        
+        # 選択中のラウンドとホールを表示
+        st.sidebar.info(f"🏌️ {st.session_state.selected_game['place']}\n🎯 ホール {st.session_state.selected_hole}")
+    
+    st.sidebar.divider()
+    
     if menu == "ラウンド記録":
         st.header("新しいラウンドを記録")
         
@@ -250,75 +306,82 @@ def main():
     elif menu == "ラウンド編集":
         st.header("ラウンド編集")
         
-        # 既存のゲーム一覧を取得
-        games = notion.get_games()
+        # 既存のユーザー一覧を取得
         users = notion.get_users()
         
         if not games:
             st.warning("編集可能なラウンドがありません。まずラウンドを記録してください。")
         else:
-            # ゲーム選択
-            game_options = []
-            for game in games:
-                date_str = game['play_date']
-                place = game['place']
-                members = []
-                for i in range(1, 5):
-                    member_name = game.get(f'member{i}_name')
-                    if member_name:
-                        members.append(member_name)
-                
-                game_info = f"{date_str} - {place} ({', '.join(members)})"
-                game_options.append({"label": game_info, "value": game})
-            
-            selected_game_option = st.selectbox(
-                "編集するラウンドを選択してください",
-                game_options,
-                format_func=lambda x: x["label"]
-            )
-            
-            if selected_game_option:
-                selected_game = selected_game_option["value"]
-                
-                # デバッグ情報（開発用）
-                with st.expander("🔍 デバッグ情報（開発用）"):
-                    st.json(selected_game)
-                
-                with st.form("edit_round_form"):
-                    st.subheader("ラウンド情報編集")
-                    
-                    # 既存の値を初期値として設定
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        edit_date = st.date_input(
-                            "プレー日",
-                            value=datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
-                        )
-                    
-                    with col2:
-                        edit_place = st.text_input(
-                            "ゴルフ場名",
-                            value=selected_game.get('place', '')
-                        )
-                    
-                    # メンバー選択（最大4人）
-                    st.subheader("メンバー選択")
-                    
-                    # メンバー選択用のオプション準備
-                    member_options = [{"name": "（選択なし）", "page_id": None}] + users
-                    
-                    # 現在設定されているメンバーを取得
-                    current_member_ids = []
+            # サイドバーでラウンドが選択されている場合はそれを使用
+            if "selected_game" in st.session_state and st.session_state.selected_game is not None:
+                selected_game = st.session_state.selected_game
+                st.info(f"📌 サイドバーで選択中: {selected_game['place']} - {selected_game['play_date']}")
+            else:
+                # ゲーム選択（サイドバーで選択されていない場合のフォールバック）
+                game_options = []
+                for game in games:
+                    date_str = game['play_date']
+                    place = game['place']
+                    members = []
                     for i in range(1, 5):
-                        member_id = selected_game["member_ids"].get(f'member{i}_id')
-                        current_member_ids.append(member_id)
+                        member_name = game.get(f'member{i}_name')
+                        if member_name:
+                            members.append(member_name)
                     
-                    # 4つのプルダウンでメンバー選択
-                    member_cols = st.columns(4)
-                    selected_member_ids = []
-                    
-                    for i in range(4):
+                    game_info = f"{date_str} - {place} ({', '.join(members)})"
+                    game_options.append({"label": game_info, "value": game})
+                
+                selected_game_option = st.selectbox(
+                    "編集するラウンドを選択してください",
+                    game_options,
+                    format_func=lambda x: x["label"]
+                )
+                
+                if selected_game_option:
+                    selected_game = selected_game_option["value"]
+                else:
+                    st.warning("⬅️ サイドバーまたは上記でラウンドを選択してください。")
+                    return
+            
+            # デバッグ情報（開発用）
+            with st.expander("🔍 デバッグ情報（開発用）"):
+                st.json(selected_game)
+            
+            with st.form("edit_round_form"):
+                st.subheader("ラウンド情報編集")
+                
+                # 既存の値を初期値として設定
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    edit_date = st.date_input(
+                        "プレー日",
+                        value=datetime.strptime(selected_game['play_date'], "%Y-%m-%d").date()
+                    )
+                
+                with col2:
+                    edit_place = st.text_input(
+                        "ゴルフ場名",
+                        value=selected_game.get('place', '')
+                    )
+                
+                # メンバー選択（最大4人）
+                st.subheader("メンバー選択")
+                
+                # メンバー選択用のオプション準備
+                member_options = [{"name": "（選択なし）", "page_id": None}] + users
+                
+                # 現在設定されているメンバーを取得
+                current_member_ids = []
+                for i in range(1, 5):
+                    member_id = selected_game["member_ids"].get(f'member{i}_id')
+                    current_member_ids.append(member_id)
+                
+                # 4つのプルダウンでメンバー選択
+                member_cols = st.columns(4)
+                selected_member_ids = []
+                
+                for i in range(4):
                         with member_cols[i]:
                             # 現在設定されているメンバーのインデックスを取得
                             current_member_id = current_member_ids[i] if i < len(current_member_ids) else None
@@ -339,110 +402,113 @@ def main():
                             )
                             
                             selected_member_ids.append(selected_member["page_id"] if selected_member["page_id"] else None)
-                    
-                    # 選択されたメンバーをフィルタリング（Noneを除外）
-                    edit_selected_members = []
-                    for member_id in selected_member_ids:
-                        if member_id:
-                            for user in users:
-                                if user["page_id"] == member_id:
-                                    edit_selected_members.append(user)
-                                    break
-                    # オリンピック設定
-                    st.subheader("オリンピック設定")
-                    
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        edit_gold_rate = st.number_input(
-                            "金",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('gold', 0) or 0),
-                            step=4,
-                        )
-                        edit_iron_rate = st.number_input(
-                            "鉄",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('iron', 0) or 0),
-                            step=1,
-                        )
-                    
-                    with col2:
-                        edit_silver_rate = st.number_input(
-                            "銀",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('silver', 0) or 0),
-                            step=3,
-                        )
-                        edit_diamond_rate = st.number_input(
-                            "ダイヤモンド",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('diamond', 0) or 0),
-                            step=5
-                        )
-                    
-                    with col3:
-                        edit_bronze_rate = st.number_input(
-                            "銅",
-                            min_value=0,
-                            max_value=100,
-                            value=max(0, selected_game.get('bronze', 0) or 0),
-                            step=2,
-                        )
-                    
-                    if st.form_submit_button("ラウンドを更新"):
-                        if not edit_selected_members:
-                            st.error("少なくとも1人のメンバーを選択してください。")
-                        elif not edit_place:
-                            st.error("ゴルフ場名を入力してください。")
-                        else:
-                            # プレー日からIDを自動生成
-                            edit_game_id = edit_date.strftime("%Y%m%d")
-                            
-                            # 更新用のプロパティを作成
-                            properties = {
-                                "play_date": {"date": {"start": edit_date.strftime("%Y-%m-%d")}},
-                                "place": {"rich_text": [{"text": {"content": edit_place}}]},
-                                "id": {"title": [{"text": {"content": edit_game_id}}]},
-                                "gold": {"number": edit_gold_rate},
-                                "silver": {"number": edit_silver_rate},
-                                "bronze": {"number": edit_bronze_rate},
-                                "iron": {"number": edit_iron_rate},
-                                "diamond": {"number": edit_diamond_rate}
-                            }
-                            
-                            # メンバーのリレーションを更新（プルダウンの選択順序で設定）
-                            for i in range(1, 5):
-                                member_id = selected_member_ids[i-1] if i-1 < len(selected_member_ids) else None
-                                if member_id:
-                                    properties[f"member{i}"] = {"relation": [{"id": member_id}]}
-                                else:
-                                    properties[f"member{i}"] = {"relation": []}
-                            
-                            result = notion.update_page(selected_game["page_id"], properties)
-                            if result:
-                                st.success(f"ラウンド '{edit_game_id}' を更新しました！")
-                                st.rerun()
+                
+                # 選択されたメンバーをフィルタリング（Noneを除外）
+                edit_selected_members = []
+                for member_id in selected_member_ids:
+                    if member_id:
+                        for user in users:
+                            if user["page_id"] == member_id:
+                                edit_selected_members.append(user)
+                                break
+                
+                # オリンピック設定
+                st.subheader("オリンピック設定")
+                
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    edit_gold_rate = st.number_input(
+                        "金",
+                        min_value=0,
+                        max_value=100,
+                        value=max(0, selected_game.get('gold', 0) or 0),
+                        step=4,
+                    )
+                    edit_iron_rate = st.number_input(
+                        "鉄",
+                        min_value=0,
+                        max_value=100,
+                        value=max(0, selected_game.get('iron', 0) or 0),
+                        step=1,
+                    )
+                
+                with col2:
+                    edit_silver_rate = st.number_input(
+                        "銀",
+                        min_value=0,
+                        max_value=100,
+                        value=max(0, selected_game.get('silver', 0) or 0),
+                        step=3,
+                    )
+                    edit_diamond_rate = st.number_input(
+                        "ダイヤモンド",
+                        min_value=0,
+                        max_value=100,
+                        value=max(0, selected_game.get('diamond', 0) or 0),
+                        step=5
+                    )
+                
+                with col3:
+                    edit_bronze_rate = st.number_input(
+                        "銅",
+                        min_value=0,
+                        max_value=100,
+                        value=max(0, selected_game.get('bronze', 0) or 0),
+                        step=2,
+                    )
+                
+                if st.form_submit_button("ラウンドを更新"):
+                    if not edit_selected_members:
+                        st.error("少なくとも1人のメンバーを選択してください。")
+                    elif not edit_place:
+                        st.error("ゴルフ場名を入力してください。")
+                    else:
+                        # プレー日からIDを自動生成
+                        edit_game_id = edit_date.strftime("%Y%m%d")
+                        
+                        # 更新用のプロパティを作成
+                        properties = {
+                            "play_date": {"date": {"start": edit_date.strftime("%Y-%m-%d")}},
+                            "place": {"rich_text": [{"text": {"content": edit_place}}]},
+                            "id": {"title": [{"text": {"content": edit_game_id}}]},
+                            "gold": {"number": edit_gold_rate},
+                            "silver": {"number": edit_silver_rate},
+                            "bronze": {"number": edit_bronze_rate},
+                            "iron": {"number": edit_iron_rate},
+                            "diamond": {"number": edit_diamond_rate}
+                        }
+                        
+                        # メンバーのリレーションを更新（プルダウンの選択順序で設定）
+                        for i in range(1, 5):
+                            member_id = selected_member_ids[i-1] if i-1 < len(selected_member_ids) else None
+                            if member_id:
+                                properties[f"member{i}"] = {"relation": [{"id": member_id}]}
+                            else:
+                                properties[f"member{i}"] = {"relation": []}
+                        
+                        result = notion.update_page(selected_game["page_id"], properties)
+                        if result:
+                            st.success(f"ラウンド '{edit_game_id}' を更新しました！")
+                            st.rerun()
     
     elif menu == "スコア入力":
         st.header("スコア入力")
         
-        # ゲーム一覧を取得
-        games = notion.get_games()
+        # ユーザー一覧を取得
         users = notion.get_users()
         
         if not games:
             st.warning("記録されたラウンドがありません。まずラウンドを記録してください。")
             return
         
-        # ゲーム選択
-        game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
-        selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()), key="game_select")
-        selected_game = game_options[selected_game_key]
+        # サイドバーでラウンドが選択されている場合はそれを使用、そうでなければ選択を促す
+        if "selected_game" in st.session_state and st.session_state.selected_game is not None:
+            selected_game = st.session_state.selected_game
+            st.info(f"📌 サイドバーで選択中: {selected_game['place']} - {selected_game['play_date']}")
+        else:
+            st.warning("⬅️ サイドバーでラウンドを選択してください。")
+            return
         
         # 選択されたゲームのメンバーを取得
         user_dict = {user["page_id"]: user for user in users}
@@ -452,33 +518,37 @@ def main():
             st.warning("このラウンドにメンバーが設定されていません。")
             return
         
-        # ホール選択（ボタン形式で配置）
-        # セッション状態でホール番号を管理
+        # サイドバーでホールが選択されている場合はそれを使用、そうでなければボタン形式で選択
         if "selected_hole" not in st.session_state:
             st.session_state.selected_hole = 1
         
-        # ホール選択
+        hole_number = st.session_state.selected_hole
+        
+        # ホール選択セクション（ボタン形式 - サイドバー選択と連動）
         st.subheader("🏌️ ホール選択")
         
-        # 1行目：1-9ホール
-        hole_cols_1 = st.columns(9)
-        for i in range(1, 10):
-            with hole_cols_1[i-1]:
-                button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                    st.session_state.selected_hole = i
-                    st.rerun()
+        # 現在選択中のホールを表示
+        st.info(f"📌 現在選択中: ホール {hole_number} (サイドバーから変更可能)")
         
-        # 2行目：10-18ホール
-        hole_cols_2 = st.columns(9)
-        for i in range(10, 19):
-            with hole_cols_2[i-10]:
-                button_type = "primary" if st.session_state.selected_hole == i else "secondary"
-                if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
-                    st.session_state.selected_hole = i
-                    st.rerun()
-        
-        hole_number = st.session_state.selected_hole
+        # クイックホール選択ボタン（オプション）
+        with st.expander("🔄 クイックホール選択", expanded=False):
+            # 1行目：1-9ホール
+            hole_cols_1 = st.columns(9)
+            for i in range(1, 10):
+                with hole_cols_1[i-1]:
+                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
+                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
+                        st.session_state.selected_hole = i
+                        st.rerun()
+            
+            # 2行目：10-18ホール
+            hole_cols_2 = st.columns(9)
+            for i in range(10, 19):
+                with hole_cols_2[i-10]:
+                    button_type = "primary" if st.session_state.selected_hole == i else "secondary"
+                    if st.button(str(i), key=f"hole_{i}", type=button_type, use_container_width=True):
+                        st.session_state.selected_hole = i
+                        st.rerun()
         
         # 既存のスコアを確認（ホール変更時に動的に更新）
         existing_scores = notion.get_scores(selected_game["id"])
@@ -641,18 +711,22 @@ def main():
     elif menu == "スコア確認":
         st.header("スコア確認")
         
-        # ゲーム一覧を取得
-        games = notion.get_games()
+        # ユーザー一覧を取得
         users = notion.get_users()
         
         if not games:
             st.warning("記録されたラウンドがありません。")
             return
         
-        # ゲーム選択
-        game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
-        selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()))
-        selected_game = game_options[selected_game_key]
+        # サイドバーでラウンドが選択されている場合はそれを使用、そうでなければ選択UIを表示
+        if "selected_game" in st.session_state and st.session_state.selected_game is not None:
+            selected_game = st.session_state.selected_game
+            st.info(f"📌 サイドバーで選択中: {selected_game['place']} - {selected_game['play_date']}")
+        else:
+            # ゲーム選択（サイドバーで選択されていない場合のフォールバック）
+            game_options = {f"{game['id']} - {game['place']} ({game['play_date']})": game for game in games}
+            selected_game_key = st.selectbox("ラウンドを選択", list(game_options.keys()))
+            selected_game = game_options[selected_game_key]
         
         # スコアを取得
         scores = notion.get_scores(selected_game["id"])
