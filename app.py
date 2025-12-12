@@ -1377,6 +1377,50 @@ def main():
                     else:
                         st.write(f"{other_name}: ±0点")
         
+        # 最終的な支払い・受取（相殺後）を計算
+        st.write("---")  # 区切り線
+        
+        # 相殺計算：A→B の関係とB→A の関係を比較
+        final_transactions = {}
+        processed_pairs = set()
+        
+        for member1_name in member_relationships:
+            for member2_name in member_relationships[member1_name]:
+                # ペアの処理済みチェック（順序関係なく）
+                pair = tuple(sorted([member1_name, member2_name]))
+                if pair in processed_pairs:
+                    continue
+                
+                # member1からmember2への関係
+                member1_to_member2 = member_relationships[member1_name].get(member2_name, 0)
+                # member2からmember1への関係
+                member2_to_member1 = member_relationships[member2_name].get(member1_name, 0)
+                
+                # 相殺計算
+                net_amount = member1_to_member2 + member2_to_member1
+                
+                if net_amount > 0:
+                    # member1がmember2から受け取る
+                    final_transactions[f"{member1_name}←{member2_name}"] = net_amount
+                elif net_amount < 0:
+                    # member2がmember1から受け取る
+                    final_transactions[f"{member2_name}←{member1_name}"] = abs(net_amount)
+                # net_amount == 0の場合は相殺されるので表示しない
+                
+                processed_pairs.add(pair)
+        
+        # 最終支払い・受取を表示
+        final_cols = st.columns(min(3, len(final_transactions)) if final_transactions else 1)
+        
+        if final_transactions:
+            for i, (transaction, amount) in enumerate(final_transactions.items()):
+                col_index = i % len(final_cols)
+                with final_cols[col_index]:
+                    st.write(f"{transaction}: {amount:.0f}点")
+        else:
+            with final_cols[0]:
+                st.info("すべて相殺されました")
+        
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
         
