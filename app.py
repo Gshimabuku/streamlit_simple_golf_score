@@ -220,12 +220,11 @@ def main():
         selected_hole = st.sidebar.selectbox(
             "ホール番号",
             hole_options,
-            index=st.session_state.selected_hole - 1,
-            key="sidebar_hole_select"
+            index=st.session_state.selected_hole - 1
         )
         
-        if selected_hole != st.session_state.selected_hole:
-            st.session_state.selected_hole = selected_hole
+        # サイドバーのselectboxとセッション状態を同期
+        st.session_state.selected_hole = selected_hole
         
         # 選択中のラウンドとホールを表示
         st.sidebar.info(f"🏌️ {st.session_state.selected_game['place']}\n🎯 ホール {st.session_state.selected_hole}")
