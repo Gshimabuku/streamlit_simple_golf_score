@@ -70,7 +70,8 @@ class NotionClient:
             for page in result["results"]:
                 user_id = page["properties"]["id"]["title"][0]["text"]["content"] if page["properties"]["id"]["title"] else ""
                 user_name = page["properties"]["name"]["rich_text"][0]["text"]["content"] if page["properties"]["name"]["rich_text"] else ""
-                users.append({"id": user_id, "name": user_name, "page_id": page["id"]})
+                name_display = page["properties"]["name_display"]["rich_text"][0]["text"]["content"] if page["properties"].get("name_display", {}).get("rich_text") else user_name[:3]
+                users.append({"id": user_id, "name": user_name, "name_display": name_display, "page_id": page["id"]})
         return users
     
     def get_games(self):
@@ -598,7 +599,7 @@ def main():
                 with member_cols[i]:
                     # 既存データがある場合の表示
                     data_status = "📊" if existing_score else "🆕"
-                    st.markdown(f"### {member['name']} {data_status}")
+                    st.markdown(f"### {member['name_display']} {data_status}")
                     st.caption(f"ホール{hole_number}")
                     
                     # パー±での入力（既存データから取得またはデフォルト0）
@@ -1501,7 +1502,7 @@ def main():
         if users:
             st.subheader("登録済みユーザー")
             for user in users:
-                st.write(f"- {user['name']} (ID: {user['id']})")
+                st.write(f"- {user['name']} (ID: {user['id']}) - 表示名: {user['name_display']}")
         
         st.subheader("新しいユーザーを追加")
         
@@ -1515,6 +1516,12 @@ def main():
                 "表示名",
                 placeholder="例：山田太郎"
             )
+            name_display = st.text_input(
+                "スコア入力時の表示名（3文字）",
+                placeholder="例：山田",
+                max_chars=3,
+                help="スコア入力画面で表示される3文字以内の名前"
+            )
             
             submitted = st.form_submit_button("ユーザーを追加")
             
@@ -1523,16 +1530,22 @@ def main():
                     st.error("ユーザーIDと表示名の両方を入力してください。")
                 elif not user_id.islower() or not user_id.isalnum():
                     st.error("ユーザーIDは小文字の英数字のみ使用してください。")
+                elif len(name_display) > 3:
+                    st.error("スコア入力時の表示名は3文字以内で入力してください。")
                 else:
                     # 重複チェック
                     existing_ids = [user["id"] for user in users]
                     if user_id in existing_ids:
                         st.error("このユーザーIDは既に使用されています。")
                     else:
+                        # name_displayが空の場合は名前の最初の3文字を使用
+                        display_name = name_display if name_display else user_name[:3]
+                        
                         # ユーザーを作成
                         properties = {
                             "id": {"title": [{"text": {"content": user_id}}]},
-                            "name": {"rich_text": [{"text": {"content": user_name}}]}
+                            "name": {"rich_text": [{"text": {"content": user_name}}]},
+                            "name_display": {"rich_text": [{"text": {"content": display_name}}]}
                         }
                         
                         result = notion.create_page(USER_DB_ID, properties)
