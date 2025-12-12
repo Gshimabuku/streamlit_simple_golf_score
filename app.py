@@ -1314,86 +1314,69 @@ def main():
                 else:
                     st.info("⚖️ ±0点")
         
-        # 具体的な支払い・受取関係を計算
-        st.subheader("💳 支払い・受取詳細")
+        # 各メンバー間の個別関係を計算
+        member_relationships = {}
         
-        # プラスとマイナスのメンバーを分ける
-        creditors = [(name, balance) for name, balance in final_balances.items() if balance > 0]  # 受取側
-        debtors = [(name, abs(balance)) for name, balance in final_balances.items() if balance < 0]  # 支払側
-        
-        # 支払い関係を計算
-        transactions = []
-        
-        # 債務者のコピーを作成（計算用）
-        remaining_debts = dict(debtors)
-        remaining_credits = dict(creditors)
-        
-        # 各債権者に対して債務者から支払いを行う
-        for creditor_name, credit_amount in creditors:
-            if credit_amount <= 0:
-                continue
+        # 各メンバーに対して他のメンバーとの関係を計算
+        for member in game_members:
+            member_name = member["name"]
+            relationships = {}
+            
+            # 各イベントでこのメンバーが他のメンバーに与える/受ける影響を計算
+            for event in events:
+                event_player = event["player"]
+                event_points = event["points"]
+                event_type = event["type"]
                 
-            for debtor_name, debt_amount in debtors:
-                if debtor_name not in remaining_debts or remaining_debts[debtor_name] <= 0:
-                    continue
-                if creditor_name not in remaining_credits or remaining_credits[creditor_name] <= 0:
-                    break
-                    
-                # 支払い額を決定（債務額と債権額の少ない方）
-                payment = min(remaining_debts[debtor_name], remaining_credits[creditor_name])
+                if event_type in ["olympic", "special"]:
+                    # プラスイベント
+                    if event_player == member_name:
+                        # このメンバーがイベントを起こした場合、他全員から受け取る
+                        for other_member in game_members:
+                            if other_member["name"] != member_name:
+                                other_name = other_member["name"]
+                                if other_name not in relationships:
+                                    relationships[other_name] = 0
+                                relationships[other_name] += event_points
+                    else:
+                        # 他のメンバーがイベントを起こした場合、そのメンバーに払う
+                        if event_player not in relationships:
+                            relationships[event_player] = 0
+                        relationships[event_player] -= event_points
                 
-                if payment > 0:
-                    transactions.append({
-                        "支払者": debtor_name,
-                        "受取者": creditor_name,
-                        "金額": payment
-                    })
-                    
-                    # 残額を更新
-                    remaining_debts[debtor_name] -= payment
-                    remaining_credits[creditor_name] -= payment
+                elif event_type == "snake":
+                    # マイナスイベント
+                    if event_player == member_name:
+                        # このメンバーがイベントを起こした場合、他全員に払う
+                        for other_member in game_members:
+                            if other_member["name"] != member_name:
+                                other_name = other_member["name"]
+                                if other_name not in relationships:
+                                    relationships[other_name] = 0
+                                relationships[other_name] -= event_points
+                    else:
+                        # 他のメンバーがイベントを起こした場合、そのメンバーから受け取る
+                        if event_player not in relationships:
+                            relationships[event_player] = 0
+                        relationships[event_player] += event_points
+            
+            member_relationships[member_name] = relationships
         
-        # 支払い関係を表示
-        if transactions:
-            import pandas as pd
+        # メンバー間関係を表示（タイトルなし）
+        relationship_cols = st.columns(len(game_members))
+        for i, member in enumerate(game_members):
+            member_name = member["name"]
+            relationships = member_relationships[member_name]
             
-            df_transactions = pd.DataFrame(transactions)
-            st.dataframe(df_transactions, use_container_width=True, hide_index=True)
-            
-            # 各メンバーの詳細な支払い・受取リストを表示
-            st.subheader("👥 メンバー別詳細")
-            
-            member_detail_cols = st.columns(len(game_members))
-            
-            for i, member in enumerate(game_members):
-                member_name = member["name"]
-                
-                with member_detail_cols[i]:
-                    st.markdown(f"**{member_name}**")
-                    
-                    # このメンバーが支払う分
-                    payments = [t for t in transactions if t["支払者"] == member_name]
-                    if payments:
-                        st.markdown("**💸 支払い:**")
-                        for payment in payments:
-                            st.write(f"→ {payment['受取者']}: {payment['金額']:.1f}点")
-                    
-                    # このメンバーが受け取る分
-                    receipts = [t for t in transactions if t["受取者"] == member_name]
-                    if receipts:
-                        st.markdown("**💰 受取り:**")
-                        for receipt in receipts:
-                            st.write(f"← {receipt['支払者']}: {receipt['金額']:.1f}点")
-                    
-                    # 何もない場合
-                    if not payments and not receipts:
-                        st.info("やり取りなし")
-                        
-        else:
-            st.info("すべてのメンバーの収支が0のため、支払いは発生しません。")
+            with relationship_cols[i]:
+                for other_name, points in relationships.items():
+                    if points > 0:
+                        st.write(f"{other_name}: +{points:.0f}点")
+                    elif points < 0:
+                        st.write(f"{other_name}: {points:.0f}点")
+                    else:
+                        st.write(f"{other_name}: ±0点")
         
-
-    
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
         
