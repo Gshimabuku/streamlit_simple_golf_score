@@ -1383,6 +1383,54 @@ def main():
         
         # 収支詳細をアコーディオンで表示
         with st.expander("📋 収支詳細"):
+            # メンバー間取引テーブル
+            st.subheader("🔄 メンバー間取引テーブル")
+            
+            # テーブルデータを作成
+            import pandas as pd
+            
+            # テーブル用のデータを準備
+            table_data = {}
+            member_names = [member["name"] for member in game_members]
+            
+            # 各メンバーを行として、他メンバーとの関係を列として表示
+            for member in game_members:
+                member_name = member["name"]
+                row_data = []
+                
+                for other_member in game_members:
+                    other_name = other_member["name"]
+                    
+                    if member_name == other_name:
+                        # 自分自身の場合は最終収支を表示
+                        balance = final_balances[member_name]
+                        if balance > 0:
+                            row_data.append(f"+{balance:.0f}")
+                        elif balance < 0:
+                            row_data.append(f"{balance:.0f}")
+                        else:
+                            row_data.append("0")
+                    else:
+                        # 他メンバーとの関係を表示
+                        relationship = member_relationships[member_name].get(other_name, 0)
+                        if abs(relationship) > 0.01:  # 小数点以下の誤差を無視
+                            if relationship > 0:
+                                row_data.append(f"{other_name}:+{relationship:.0f}")
+                            else:
+                                row_data.append(f"{other_name}:{relationship:.0f}")
+                        else:
+                            row_data.append("0")
+                
+                table_data[member_name] = row_data
+            
+            # DataFrameを作成
+            df = pd.DataFrame(table_data, index=member_names).T
+            
+            # テーブルを表示
+            st.dataframe(df, use_container_width=True)
+            
+            st.divider()
+            
             # ホール別イベント詳細
             st.subheader("🏌️‍♂️ ホール別イベント")
             hole_events = {}
