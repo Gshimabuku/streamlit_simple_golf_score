@@ -579,15 +579,15 @@ def main():
             olympic_options = ["", "金", "銀", "銅", "鉄", "ダイヤモンド"]
             
             # ヘッダーとボタンを同じ行に配置
-            header_col, prev_col, save_col, next_col = st.columns([1.5, 1, 1, 1])
+            header_col, save_col, prev_col, next_col = st.columns([1.5, 1, 1, 1])
             with header_col:
-                st.subheader(f"ホール {hole_number} - 全メンバーのスコア入力")
+                st.subheader(f"ホール {hole_number} - スコア入力")
+            with save_col:
+                submitted = st.form_submit_button("保存", use_container_width=True, type="primary")
             with prev_col:
                 # 前のホールへのボタン（1ホールより大きい場合のみ表示）
                 if hole_number > 1:
                     prev_hole_clicked = st.form_submit_button("前のホール", use_container_width=True, type="secondary")
-            with save_col:
-                submitted = st.form_submit_button("保存", use_container_width=True, type="primary")
             with next_col:
                 # 次のホールへのボタン（18ホール未満の場合のみ表示）
                 if hole_number < 18:
