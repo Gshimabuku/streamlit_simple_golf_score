@@ -621,17 +621,19 @@ def main():
                     
                     # スコア表示
                     if par_relative == -3:
-                        st.caption("🦈 アルバトロス!")
+                        st.caption("☆ アルバトロス!")
                     elif par_relative == -2:
-                        st.caption("🦅 イーグル!")
+                        st.caption("◎ イーグル!")
                     elif par_relative == -1:
-                        st.caption("🐦 バーディー!")
+                        st.caption("〇 バーディー!")
                     elif par_relative == 0:
-                        st.caption("⭕ パー")
+                        st.caption("－ パー")
                     elif par_relative == 1:
-                        st.caption("➕ ボギー")
-                    elif par_relative >= 2:
-                        st.caption(f"➕➕ ダブルボギー以上 (+{par_relative})")
+                        st.caption("△ ボギー")
+                    elif par_relative == 2:
+                        st.caption("△ ダブルボギー")
+                    elif par_relative >= 3:
+                        st.caption(f"✕ トリプルボギー以上 (+{par_relative})")
                     
                     putt = st.number_input(
                         "パット",
