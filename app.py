@@ -1381,18 +1381,6 @@ def main():
                 
                 processed_pairs.add(pair)
         
-        # 最終支払い・受取を表示
-        final_cols = st.columns(min(3, len(final_transactions)) if final_transactions else 1)
-        
-        if final_transactions:
-            for i, (transaction, amount) in enumerate(final_transactions.items()):
-                col_index = i % len(final_cols)
-                with final_cols[col_index]:
-                    st.write(f"{transaction}: {amount:.0f}点")
-        else:
-            with final_cols[0]:
-                st.info("すべて相殺されました")
-        
     elif menu == "ユーザー管理":
         st.header("ユーザー管理")
         
