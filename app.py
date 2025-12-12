@@ -1394,6 +1394,8 @@ def main():
                             st.write(f"{other_name}: +{points:.0f}点")
                         else:
                             st.write(f"{other_name}: {points:.0f}点")
+                    elif abs(points) <= 0.01 and points != 0:  # 誤差範囲内の0も±0で表示
+                        st.write(f"{other_name}: ±0点")
         
         # 最終的な支払い・受取（相殺後）を計算
         st.write("---")  # 区切り線
@@ -1469,6 +1471,12 @@ def main():
                             column_data.append(f"{other_name}:+{points:.0f}")
                         else:
                             column_data.append(f"{other_name}:{points:.0f}")
+                
+                # 関係がない他メンバーは±0で表示
+                for other_member in game_members:
+                    other_name = other_member["name"]
+                    if other_name != member_name and other_name not in relationships:
+                        column_data.append(f"{other_name}:±0")
                 
                 # 行数を統一するために空行を追加
                 while len(column_data) < max_relationships + 1:  # +1は最終収支の行
