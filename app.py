@@ -1389,42 +1389,52 @@ def main():
             # テーブルデータを作成
             import pandas as pd
             
-            # テーブル用のデータを準備
+            # 各列のデータを準備（各メンバーごとの列）
             table_data = {}
-            member_names = [member["name"] for member in game_members]
+            max_relationships = 0
             
-            # 各メンバーを行として、他メンバーとの関係を列として表示
+            # 各メンバーの他メンバーとの関係数を調べて最大行数を決定
             for member in game_members:
                 member_name = member["name"]
-                row_data = []
+                relationships = member_relationships[member_name]
+                relationship_count = sum(1 for points in relationships.values() if abs(points) > 0.01)
+                max_relationships = max(max_relationships, relationship_count)
+            
+            # 各メンバーの列データを作成
+            for member in game_members:
+                member_name = member["name"]
+                column_data = []
                 
-                for other_member in game_members:
-                    other_name = other_member["name"]
-                    
-                    if member_name == other_name:
-                        # 自分自身の場合は最終収支を表示
-                        balance = final_balances[member_name]
-                        if balance > 0:
-                            row_data.append(f"+{balance:.0f}")
-                        elif balance < 0:
-                            row_data.append(f"{balance:.0f}")
-                        else:
-                            row_data.append("0")
-                    else:
-                        # 他メンバーとの関係を表示
-                        relationship = member_relationships[member_name].get(other_name, 0)
-                        if abs(relationship) > 0.01:  # 小数点以下の誤差を無視
-                            if relationship > 0:
-                                row_data.append(f"{other_name}:+{relationship:.0f}")
-                            else:
-                                row_data.append(f"{other_name}:{relationship:.0f}")
-                        else:
-                            row_data.append("0")
+                # 1行目：メンバー名（ヘッダーとして使用）
+                # 2行目：最終収支
+                balance = final_balances[member_name]
+                if balance > 0:
+                    column_data.append(f"+{balance:.0f}点")
+                elif balance < 0:
+                    column_data.append(f"{balance:.0f}点")
+                else:
+                    column_data.append("±0点")
                 
-                table_data[member_name] = row_data
+                # 3行目以降：他メンバーとの関係
+                relationships = member_relationships[member_name]
+                for other_name, points in relationships.items():
+                    if abs(points) > 0.01:  # 小数点以下の誤差を無視
+                        if points > 0:
+                            column_data.append(f"{other_name}:+{points:.0f}")
+                        else:
+                            column_data.append(f"{other_name}:{points:.0f}")
+                
+                # 行数を統一するために空行を追加
+                while len(column_data) < max_relationships + 1:  # +1は最終収支の行
+                    column_data.append("")
+                
+                table_data[member_name] = column_data
+            
+            # 行インデックスを作成
+            row_labels = ["最終収支"] + [f"関係{i+1}" for i in range(max_relationships)]
             
             # DataFrameを作成
-            df = pd.DataFrame(table_data, index=member_names).T
+            df = pd.DataFrame(table_data, index=row_labels)
             
             # テーブルを表示
             st.dataframe(df, use_container_width=True)
