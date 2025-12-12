@@ -831,50 +831,18 @@ def main():
             else:
                 stroke_row.append("E" if any(hole in score_data[member_name] for hole in range(10, 19)) else "-")
             
-            # 総合計をパー±で表示
+            # 総合計を「実際スコア(パー±)」形式で表示
             total_diff = in_total + out_total
-            if total_diff != 0:
-                stroke_row.append(f"{total_diff:+d}")
+            if any(hole in score_data[member_name] for hole in range(1, 19)):
+                total_actual_score = total_par + total_diff
+                if total_diff != 0:
+                    stroke_row.append(f"{total_actual_score}({total_diff:+d})")
+                else:
+                    stroke_row.append(f"{total_actual_score}(E)")
             else:
-                has_scores = any(hole in score_data[member_name] for hole in range(1, 19))
-                stroke_row.append("E" if has_scores else "-")
+                stroke_row.append("-")
             
             table_data.append(stroke_row)
-            
-            # 実際の打数行を追加（合計パー + パー±）
-            actual_score_row = [""]
-            in_actual_total = 0
-            out_actual_total = 0
-            
-            # 前半の実際の打数
-            for hole in range(1, 10):
-                if hole in score_data[member_name]:
-                    # パー±から実際の打数を算出（各ホールのパーは合計/18で仮定）
-                    par_diff = score_data[member_name][hole]["stroke"]
-                    estimated_hole_par = total_par / 18  # 各ホールの平均パー
-                    actual_stroke = int(estimated_hole_par + par_diff)
-                    actual_score_row.append(str(actual_stroke))
-                    in_actual_total += actual_stroke
-                else:
-                    actual_score_row.append("-")
-            
-            actual_score_row.append(str(in_actual_total) if in_actual_total > 0 else "-")
-            
-            # 後半の実際の打数
-            for hole in range(10, 19):
-                if hole in score_data[member_name]:
-                    par_diff = score_data[member_name][hole]["stroke"]
-                    estimated_hole_par = total_par / 18
-                    actual_stroke = int(estimated_hole_par + par_diff)
-                    actual_score_row.append(str(actual_stroke))
-                    out_actual_total += actual_stroke
-                else:
-                    actual_score_row.append("-")
-            
-            actual_score_row.append(str(out_actual_total) if out_actual_total > 0 else "-")
-            actual_score_row.append(str(in_actual_total + out_actual_total) if (in_actual_total > 0 and out_actual_total > 0) else "-")
-            
-            table_data.append(actual_score_row)
             
             # パット行
             putt_row = [""]  # 名前欄は空白
