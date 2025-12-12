@@ -371,8 +371,8 @@ def main():
                 
                 edit_par = st.number_input(
                     "合計パー",
-                    min_value=60,
-                    max_value=80,
+                    min_value=20,
+                    max_value=75,
                     value=selected_game.get('par', 72),
                     help="18ホール合計パー数"
                 )
