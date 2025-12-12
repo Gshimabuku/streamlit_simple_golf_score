@@ -625,13 +625,13 @@ def main():
                     elif par_relative == -2:
                         st.caption("◎ イーグル!")
                     elif par_relative == -1:
-                        st.caption("〇 バーディー!")
+                        st.caption("○ バーディー!")
                     elif par_relative == 0:
-                        st.caption("－ パー")
+                        st.caption("‐ パー")
                     elif par_relative == 1:
                         st.caption("△ ボギー")
                     elif par_relative == 2:
-                        st.caption("△ ダブルボギー")
+                        st.caption("▢ ダブルボギー")
                     elif par_relative >= 3:
                         st.caption(f"✕ トリプルボギー以上 (+{par_relative})")
                     
