@@ -749,7 +749,7 @@ def main():
                     
                     for score_data in member_scores.values():
                         properties = {
-                            "id": {"title": [{"text": {"content": score_data['id']}}]},
+                            "id": {"title": [{"text": {"content": score_data['score_id']}}]},
                             "user": {"relation": [{"id": score_data['member']['page_id']}]},
                             "hole": {"number": hole_number},
                             "stroke": {"number": score_data['stroke']},
