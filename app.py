@@ -603,7 +603,7 @@ def main():
                     
                     # パー±での入力（既存データから取得またはデフォルト0）
                     par_relative = st.number_input(
-                        f"パー±",
+                        f"スコア",
                         min_value=-3,
                         max_value=20,
                         value=existing_score["stroke"] if existing_score else 0,
